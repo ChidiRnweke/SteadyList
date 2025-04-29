@@ -7,7 +7,7 @@ import { Plus } from "lucide-react"
 import { Link } from "react-router"
 
 export default function ProjectsPage() {
-  const session =  getSession()
+  const session = getSession()
 
   if (!session) {
     redirect("/login")

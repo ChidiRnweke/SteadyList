@@ -5,12 +5,7 @@ import { DashboardProjects } from "../components/dashboard-projects"
 import { DashboardTasks } from "../components/dashboard-tasks"
 import { redirect } from "react-router"
 
-export default async function Home() {
-  const session = await getSession()
-
-  if (!session) {
-    redirect("/login")
-  }
+export default function Home() {
 
   return (
     <div className="container mx-auto py-6 space-y-8">

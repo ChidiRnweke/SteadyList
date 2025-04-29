@@ -1,10 +1,10 @@
 import { redirect } from "react-router"
-import { getSession } from "../../../lib/auth"
-import { DashboardHeader } from "../../../components/dashboard-header"
-import { ProjectForm } from "../../../components/project-form"
+import { getSession } from "../../lib/auth"
+import { DashboardHeader } from "../../components/dashboard-header"
+import { ProjectForm } from "../../components/project-form"
 
-export default  function NewProjectPage() {
-  const session =  getSession()
+export default function NewProjectPage() {
+  const session = getSession()
 
   if (!session) {
     redirect("/login")

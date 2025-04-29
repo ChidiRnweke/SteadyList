@@ -1,12 +1,7 @@
-import { redirect } from "react-router"
-import { getSession } from "../../lib/auth"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { NoteForm } from "../../components/note-form"
 
 export default function NewNotePage() {
-  const session =  getSession()
-
-
 
   return (
     <div className="container mx-auto py-6 space-y-8">

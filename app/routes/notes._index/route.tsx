@@ -1,17 +1,12 @@
-import { redirect } from "react-router"
-import { getSession } from "../../lib/auth"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { NotesList } from "../../components/notes-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
 import { Link } from "react-router"
 
-export default function NotesPage() {
-  const session = getSession()
 
-  if (!session) {
-    redirect("/login")
-  }
+
+export default function NotesPage() {
 
   return (
     <div className="container mx-auto py-6 space-y-8">

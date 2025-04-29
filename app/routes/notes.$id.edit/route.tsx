@@ -1,16 +1,9 @@
-import { redirect } from "react-router"
-import { getSession } from "../../lib/auth"
+
 import { getNoteById } from "../../lib/notes"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { NoteForm } from "../../components/note-form"
 import type { Note } from "../../lib/types"
 import type { Route } from "./+types/route"
-
-interface EditNotePageProps {
-  params: {
-    id: string
-  }
-}
 
 export async function loader({ params }: Route.LoaderArgs): Promise<Note> {
   const noteData = await getNoteById(params.id)

@@ -38,7 +38,7 @@ export async function mockSignOut(): Promise<void> {
 }
 
 // Get current session (for server components)
-export async function getSession(): Promise<Session | null> {
+export function getSession(): Session | null {
   // This is a mock implementation that would normally check cookies or headers
   // In a real implementation, this would be server-side code
 
