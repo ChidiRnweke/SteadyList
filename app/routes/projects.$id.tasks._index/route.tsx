@@ -1,4 +1,4 @@
-import { createTask } from "~/lib/services/tasks"
+import { createTask } from "~/lib/tasks"
 import type { Route } from "./+types/route"
 import { redirect } from "react-router"
 

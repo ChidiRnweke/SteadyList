@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "./ui/form"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { createTask } from "../lib/services/tasks"
+import { createTask } from "../lib/tasks"
 import { Sparkles } from "lucide-react"
 
 interface AITaskGeneratorProps {

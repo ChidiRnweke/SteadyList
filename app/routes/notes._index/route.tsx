@@ -3,8 +3,8 @@ import { NotesList } from "../../components/notes-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
 import { Link } from "react-router"
-import { getAllNotes, softDeleteNote } from "~/lib/services/notes"
-import { getProjectById } from "~/lib/services/projects"
+import { getAllNotes, softDeleteNote } from "~/lib/notes"
+import { getProjectById } from "~/lib/projects"
 import type { Route } from './+types/route'
 
 const onDelete = async (id: string) => {

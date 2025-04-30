@@ -1,6 +1,6 @@
 import { redirect } from "react-router"
 import { getSession } from "../../lib/auth"
-import { getProjectById } from "../../lib/services/projects"
+import { getProjectById } from "../../lib/projects"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { AITaskGenerator } from "../../components/ai-task-generator"
 import type { Project } from "~/lib/types"
