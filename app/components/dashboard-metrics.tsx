@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { AlertCircle, Clock, ListTodo } from "lucide-react"
 import { type Task, type Project } from "../lib/types"
@@ -13,44 +12,28 @@ interface DashboardMetricsProps {
 }
 
 export function DashboardMetrics({ tasks, projects }: DashboardMetricsProps) {
-  const [metrics, setMetrics] = useState({
-    totalProjects: 0,
-    totalTasks: 0,
-    todoTasks: 0,
-    inProgressTasks: 0,
-    doneTasks: 0,
-    blockedTasks: 0,
-    dueSoonTasks: 0,
+  const activeTasks = tasks.filter((task) => !task.deleted)
+  const activeProjects = projects.filter((project) => !project.deleted)
+
+  // Calculate due soon tasks (due in the next 48 hours)
+  const now = new Date()
+  const in48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+  const dueSoonTasks = activeTasks.filter((task) => {
+    if (!task.dueDate) return false
+    const dueDate = new Date(task.dueDate)
+    return dueDate > now && dueDate <= in48Hours && task.status !== "done"
   })
 
-  useEffect(() => {
-    const loadMetrics = async () => {
+  const metrics = {
+    totalProjects: activeProjects.length,
+    totalTasks: activeTasks.length,
+    todoTasks: activeTasks.filter((task) => task.status === "todo").length,
+    inProgressTasks: activeTasks.filter((task) => task.status === "in-progress").length,
+    doneTasks: activeTasks.filter((task) => task.status === "done").length,
+    blockedTasks: activeTasks.filter((task) => task.status === "blocked").length,
+    dueSoonTasks: dueSoonTasks.length,
+  }
 
-      const activeTasks = tasks.filter((task) => !task.deleted)
-      const activeProjects = projects.filter((project) => !project.deleted)
-
-      // Calculate due soon tasks (due in the next 48 hours)
-      const now = new Date()
-      const in48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000)
-      const dueSoonTasks = activeTasks.filter((task) => {
-        if (!task.dueDate) return false
-        const dueDate = new Date(task.dueDate)
-        return dueDate > now && dueDate <= in48Hours && task.status !== "done"
-      })
-
-      setMetrics({
-        totalProjects: activeProjects.length,
-        totalTasks: activeTasks.length,
-        todoTasks: activeTasks.filter((task) => task.status === "todo").length,
-        inProgressTasks: activeTasks.filter((task) => task.status === "in-progress").length,
-        doneTasks: activeTasks.filter((task) => task.status === "done").length,
-        blockedTasks: activeTasks.filter((task) => task.status === "blocked").length,
-        dueSoonTasks: dueSoonTasks.length,
-      })
-    }
-
-    loadMetrics()
-  }, [])
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -16,9 +16,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { CalendarIcon, Bell } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "../lib/utils"
-import { createTask, updateTask } from "../lib/tasks"
 import { Switch } from "./ui/switch"
-import type { Task } from "../lib/types"
+import { useFetcher } from "react-router"
+
+
 
 const formSchema = z.object({
   title: z.string().min(1, "Task title is required").max(100),
@@ -26,53 +27,42 @@ const formSchema = z.object({
   dueDate: z.date().optional(),
   priority: z.enum(["low", "medium", "high"]),
   status: z.enum(["todo", "in-progress", "blocked", "done"]),
-  reminder: z.boolean().default(false),
+  reminder: z.boolean(),
 })
 
 interface TaskFormProps {
   projectId: string
-  task?: Task
 }
 
-export function TaskForm({ projectId, task }: TaskFormProps) {
+export function TaskForm({ projectId }: TaskFormProps) {
   const navigate = useNavigate()
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const fetcher = useFetcher()
+  let busy = fetcher.state !== "idle";
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: task?.title || "",
-      description: task?.description || "",
-      dueDate: task?.dueDate ? new Date(task.dueDate) : undefined,
-      priority: task?.priority || "medium",
-      status: task?.status || "todo",
-      reminder: task?.reminder || false,
+      title: "",
+      description: "",
+      dueDate: undefined,
+      priority: "medium" as "low" | "medium" | "high",
+      status: "todo" as "todo" | "in-progress" | "blocked" | "done",
+      reminder: false,
     },
   })
+  const priorityStr = form.watch("priority");
+  const statusStr = form.watch("status");
+  const reminderStr = form.watch("reminder") ? "true" : "false";
+  const dueDateStr = (() => {
+    const d = form.watch("dueDate");
+    return d ? d.toISOString() : "";
+  })();
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true)
-
-    try {
-      if (task) {
-        await updateTask(task.id, { ...values, projectId })
-      } else {
-        await createTask({ ...values, projectId })
-      }
-
-      navigate(`/projects/${projectId}`)
-      navigate(0)
-    } catch (error) {
-      console.error("Failed to save task:", error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   return (
     <Card className="max-w-2xl mx-auto p-6 border-slate-200 shadow-sm">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <fetcher.Form method="post" action={`/projects/${projectId}/tasks`} className="space-y-6">
           <FormField
             control={form.control}
             name="title"
@@ -126,11 +116,18 @@ export function TaskForm({ projectId, task }: TaskFormProps) {
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className="rounded-md border"
+                      />
                     </PopoverContent>
                   </Popover>
                   <FormDescription>When should this task be completed?</FormDescription>
                   <FormMessage />
+                  <input
+                    type="hidden"
+                    name="dueDate"
+                    value={dueDateStr}
+                    readOnly
+                  />
                 </FormItem>
               )}
             />
@@ -155,6 +152,12 @@ export function TaskForm({ projectId, task }: TaskFormProps) {
                   </Select>
                   <FormDescription>How important is this task?</FormDescription>
                   <FormMessage />
+                  <input
+                    type="hidden"
+                    name="priority"
+                    value={priorityStr}
+                    readOnly
+                  />
                 </FormItem>
               )}
             />
@@ -182,6 +185,13 @@ export function TaskForm({ projectId, task }: TaskFormProps) {
                   </Select>
                   <FormDescription>Current progress of the task</FormDescription>
                   <FormMessage />
+
+                  <input
+                    type="hidden"
+                    name="status"
+                    value={statusStr}
+                    readOnly
+                  />
                 </FormItem>
               )}
             />
@@ -202,6 +212,13 @@ export function TaskForm({ projectId, task }: TaskFormProps) {
                     </div>
                   </div>
                   <FormDescription>You'll receive a notification before the due date</FormDescription>
+                  <FormMessage />
+                  <input
+                    type="hidden"
+                    name="reminder"
+                    value={reminderStr}
+                    readOnly
+                  />
                 </FormItem>
               )}
             />
@@ -211,11 +228,11 @@ export function TaskForm({ projectId, task }: TaskFormProps) {
             <Button type="button" variant="outline" onClick={() => navigate(-1)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-primary hover:bg-primary/90">
-              {isSubmitting ? "Saving..." : task ? "Update Task" : "Create Task"}
+            <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
+              {busy ? "Saving..." : "Create Task"}
             </Button>
           </div>
-        </form>
+        </fetcher.Form>
       </Form>
     </Card>
   )

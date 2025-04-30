@@ -1,65 +1,22 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Edit, MoreHorizontal, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
-import { getAllNotes, softDeleteNote } from "../lib/notes"
-import { getProjectById } from "../lib/projects"
 import { formatDate } from "../lib/utils"
 import type { Note } from "../lib/types"
+import { useFetcher } from "react-router"
 
-export function NotesList() {
-  const [notes, setNotes] = useState<(Note & { projectName?: string })[]>([])
-  const [loading, setLoading] = useState(true)
+interface NotesListProps {
+  notes: (Note & { projectName?: string })[]
+}
 
-  useEffect(() => {
-    const loadNotes = async () => {
-      setLoading(true)
-      try {
-        const allNotes = await getAllNotes()
-        const activeNotes = allNotes.filter((note) => !note.deleted)
+export function NotesList({ notes }: NotesListProps) {
+  const fetcher = useFetcher()
 
-        // Get project names for notes that are linked to projects
-        const notesWithProjects = await Promise.all(
-          activeNotes.map(async (note) => {
-            if (note.projectId) {
-              const project = await getProjectById(note.projectId)
-              return {
-                ...note,
-                projectName: project?.name,
-              }
-            }
-            return note
-          }),
-        )
-
-        setNotes(notesWithProjects)
-      } catch (error) {
-        console.error("Failed to load notes:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadNotes()
-  }, [])
-
-  const handleDelete = async (id: string) => {
-    await softDeleteNote(id)
-    setNotes(notes.filter((note) => note.id !== id))
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
 
   if (notes.length === 0) {
     return (
@@ -94,10 +51,12 @@ export function NotesList() {
                       Edit
                     </DropdownMenuItem>
                   </Link>
-                  <DropdownMenuItem onClick={() => handleDelete(note.id)} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
+                  <fetcher.Form method="delete" action={`/notes/${note.id}`}>
+                    <DropdownMenuItem className="text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </fetcher.Form>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

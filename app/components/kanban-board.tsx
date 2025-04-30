@@ -5,11 +5,11 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { TaskCard } from "./task-card"
-import type { Project, Task } from "../lib/types"
+import type { Task } from "../lib/types"
 
 interface KanbanBoardProps {
   tasks: Task[]
-  project: Project
+  projectId: string
 }
 
 type Column = {
@@ -20,7 +20,7 @@ type Column = {
 }
 
 
-export function KanbanBoard({ tasks, project }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Column[]>([
     { id: "todo", title: "To Do", tasks: [], color: "border-secondary bg-secondary/5" },
     { id: "in-progress", title: "In Progress", tasks: [], color: "border-amber-500 bg-amber-500/5" },
@@ -119,7 +119,7 @@ export function KanbanBoard({ tasks, project }: KanbanBoardProps) {
                         <Draggable key={task.id} draggableId={task.id} index={index}>
                           {(provided) => (
                             <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                              <TaskCard task={task} projectId={task.projectId} />
+                              <TaskCard task={task} projectId={projectId} />
                             </div>
                           )}
                         </Draggable>

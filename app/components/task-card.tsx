@@ -1,7 +1,6 @@
 "use client"
 
 import { Link } from "react-router"
-import { useNavigate } from "react-router"
 import { Card, CardContent, CardFooter } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
@@ -9,7 +8,7 @@ import { Calendar, Edit, MoreHorizontal, Trash2, Bell } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import type { Task } from "../lib/types"
 import { formatDate } from "../lib/utils"
-import { softDeleteTask } from "../lib/tasks"
+import { useFetcher } from "react-router"
 
 interface TaskCardProps {
   task: Task
@@ -17,12 +16,9 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, projectId }: TaskCardProps) {
-  const navigate = useNavigate()
+  const fetcher = useFetcher()
+  let busy = fetcher.state !== "idle";
 
-  const handleDelete = async () => {
-    await softDeleteTask(task.id)
-    navigate(0)
-  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -73,9 +69,14 @@ export function TaskCard({ task, projectId }: TaskCardProps) {
                   Edit
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+
+              <DropdownMenuItem className="text-destructive">
+                <fetcher.Form method="delete" action={`/projects/${projectId}/tasks/${task.id}`}>
+                  <Button type="submit" variant="ghost" className="m-0 p-0 has-[>svg]:px-0">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </fetcher.Form>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -112,6 +113,6 @@ export function TaskCard({ task, projectId }: TaskCardProps) {
           </Button>
         </Link>
       </CardFooter>
-    </Card>
+    </Card >
   )
 }

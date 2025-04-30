@@ -1,41 +1,49 @@
 import { redirect } from "react-router"
 import { getSession } from "../../lib/auth"
 import { getProjectById, softDeleteProject } from "../../lib/projects"
+import { getTasksByProject } from "../../lib/tasks"
+import { getNotesByProject } from "../../lib/notes"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { KanbanBoard } from "../../components/kanban-board"
 import { ProjectHeader } from "../../components/project-header"
 import { ProjectNotes } from "../../components/project-notes"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Notebook, KanbanIcon as LayoutKanban } from "lucide-react"
-import type { Project } from "~/lib/types"
 import type { Route } from "./+types/route"
 
 
 export async function action({ request, params }: Route.ActionArgs) {
+  console.log("action", request, params)
   const method = request.method
   if (method === "DELETE") {
     await softDeleteProject(params.id)
   }
 }
 
-export async function loader({ params }: Route.LoaderArgs): Promise<Project> {
-  const project = await getProjectById(params.id)
-  return project!
-}
-
-export default function ProjectPage(loaderData: Route.ComponentProps) {
-
-
-  const project = loaderData.loaderData
+export async function loader({ params }: Route.LoaderArgs) {
+  const projectId = params.id;
+  const project = await getProjectById(projectId);
+  const tasks = await getTasksByProject(projectId);
+  const notes = await getNotesByProject(projectId);
 
   if (!project) {
-    redirect("/projects")
+    return redirect("/projects");
+  }
+
+  return { project, tasks, notes };
+}
+
+export default function ProjectPage({ loaderData }: Route.ComponentProps) {
+  const { project, tasks, notes } = loaderData
+
+  if (!project) {
+    return redirect("/projects")
   }
 
   return (
     <div className="container mx-auto py-6 space-y-8">
       <DashboardHeader />
-      <ProjectHeader project={project!} />
+      <ProjectHeader project={project} />
 
       <Tabs defaultValue="tasks" className="w-full">
         <TabsList className="mb-6">
@@ -49,10 +57,10 @@ export default function ProjectPage(loaderData: Route.ComponentProps) {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="tasks">
-          <KanbanBoard projectId={project.id} />
+          <KanbanBoard tasks={tasks} projectId={project.id} />
         </TabsContent>
         <TabsContent value="notes">
-          <ProjectNotes projectId={project.id} />
+          <ProjectNotes projectId={project.id} notes={notes} />
         </TabsContent>
       </Tabs>
     </div>

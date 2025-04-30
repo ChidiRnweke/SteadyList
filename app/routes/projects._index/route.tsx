@@ -5,22 +5,38 @@ import { ProjectList } from "../../components/project-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
 import { Link } from "react-router"
-import { getAllProjects } from "~/lib/projects"
+import { getAllProjects, createProject } from "~/lib/projects"
 import { getAllTasks } from "~/lib/tasks"
-import type { Route } from "../+types/_index"
+import type { Route } from "./+types/route"
+
 
 export async function loader() {
+  const session = await getSession()
+
+  if (!session) {
+    return redirect("/login")
+  }
+
   const projects = await getAllProjects()
   const tasks = await getAllTasks()
   return { projects, tasks }
 }
+
+export async function action({ request }: Route.ActionArgs) {
+  const method = request.method
+
+  if (method === "POST") {
+    const formData = await request.formData()
+    const name = formData.get("name") as string
+    const description = formData.get("description") as string
+
+    const project = await createProject({ name, description })
+    return redirect(`/projects/${project.id}`)
+  }
+}
+
 export default function ProjectsPage({ loaderData }: Route.ComponentProps) {
   const { projects, tasks } = loaderData
-  const session = getSession()
-
-  if (!session) {
-    redirect("/login")
-  }
 
   return (
     <div className="container mx-auto py-6 space-y-8">

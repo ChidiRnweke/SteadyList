@@ -4,9 +4,17 @@ import { useEffect, useState } from "react"
 import { Bell } from "lucide-react"
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { getNotifications, markNotificationAsRead } from "../lib/notifications"
 import type { Notification } from "../lib/types"
 import { formatDistanceToNow } from "date-fns"
+
+
+const getNotifications = async () => {
+  return []
+}
+
+const markNotificationAsRead = async (id: string) => {
+  console.log("Marking notification as read", id)
+}
 
 export function NotificationIndicator() {
   const [notifications, setNotifications] = useState<Notification[]>([])

@@ -1,45 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link } from "react-router"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
-import { getNotesByProject } from "../lib/notes"
 import { formatDate } from "../lib/utils"
 import { Plus } from "lucide-react"
 import type { Note } from "../lib/types"
 
 interface ProjectNotesProps {
   projectId: string
+  notes: Note[]
 }
 
-export function ProjectNotes({ projectId }: ProjectNotesProps) {
-  const [notes, setNotes] = useState<Note[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadNotes = async () => {
-      setLoading(true)
-      try {
-        const projectNotes = await getNotesByProject(projectId)
-        setNotes(projectNotes.filter((note) => !note.deleted))
-      } catch (error) {
-        console.error("Failed to load notes:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadNotes()
-  }, [projectId])
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
+export function ProjectNotes({ projectId, notes }: ProjectNotesProps) {
 
   return (
     <div className="space-y-6">

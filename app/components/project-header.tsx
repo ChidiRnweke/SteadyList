@@ -16,18 +16,20 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog"
 import type { Project } from "../lib/types"
-import { softDeleteProject } from "../lib/projects"
 import { formatDate } from "../lib/utils"
 
 interface ProjectHeaderProps {
   project: Project
+}
+const onDelete = async (id: string) => {
+  console.log("Deleting project", id)
 }
 
 export function ProjectHeader({ project }: ProjectHeaderProps) {
   const navigate = useNavigate()
 
   const handleDelete = async () => {
-    await softDeleteProject(project.id)
+    await onDelete(project.id)
     navigate("/projects")
     navigate(0)
   }

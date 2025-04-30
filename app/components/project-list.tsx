@@ -1,6 +1,6 @@
 "use client"
 
-import { Form } from "react-router";
+import { useFetcher } from "react-router";
 import { Link } from "react-router"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
@@ -17,6 +17,8 @@ interface ProjectListProps {
 }
 
 export function ProjectList({ projects, tasks }: ProjectListProps) {
+  const fetcher = useFetcher()
+  let busy = fetcher.state !== "idle";
 
 
   const activeProjects = projects.filter((p) => !p.deleted)
@@ -77,12 +79,14 @@ export function ProjectList({ projects, tasks }: ProjectListProps) {
                       AI Generate Tasks
                     </DropdownMenuItem>
                   </Link>
-                  <Form method="delete" action={`/projects/${project.id}`}>
+                  <fetcher.Form method="delete" action={`/projects/${project.id}`}>
                     <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      <Button type="submit" variant="ghost" className="w-full justify-between hover:bg-white hover:text-primary" disabled={busy}  >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
                     </DropdownMenuItem>
-                  </Form>
+                  </fetcher.Form>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
