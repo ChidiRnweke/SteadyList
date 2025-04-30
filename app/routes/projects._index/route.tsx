@@ -5,8 +5,17 @@ import { ProjectList } from "../../components/project-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
 import { Link } from "react-router"
+import { getAllProjects } from "~/lib/projects"
+import { getAllTasks } from "~/lib/tasks"
+import type { Route } from "../+types/_index"
 
-export default function ProjectsPage() {
+export async function loader() {
+  const projects = await getAllProjects()
+  const tasks = await getAllTasks()
+  return { projects, tasks }
+}
+export default function ProjectsPage({ loaderData }: Route.ComponentProps) {
+  const { projects, tasks } = loaderData
   const session = getSession()
 
   if (!session) {
@@ -27,7 +36,7 @@ export default function ProjectsPage() {
         </Link>
       </div>
 
-      <ProjectList />
+      <ProjectList projects={projects} tasks={tasks} />
     </div>
   )
 }

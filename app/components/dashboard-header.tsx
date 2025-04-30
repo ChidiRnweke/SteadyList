@@ -12,9 +12,9 @@ import { NotificationIndicator } from "../components/notification-indicator"
 import { MainNav } from "../components/main-nav"
 import { MobileNav } from "../components/mobile-nav"
 
-export function   DashboardHeader() {
-    const navigate = useNavigate()
-    const location = useLocation()
+export function DashboardHeader() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const user = useUser()
 
   const handleSignOut = async () => {
@@ -29,7 +29,7 @@ export function   DashboardHeader() {
           <div className="relative w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white text-sm font-bold">T</span>
           </div>
-          <span className="text-xl font-bold text-primary hidden md:inline-block">TaskMaster</span>
+          <span className="text-xl font-bold text-primary hidden md:inline-block">SteadyList</span>
         </Link>
 
         <div className="hidden md:flex">

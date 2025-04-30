@@ -86,7 +86,7 @@ export interface Note {
 export interface CreateNoteInput {
   title: string
   content: string
-  projectId?: string
+  projectId: string
 }
 
 export interface UpdateNoteInput {

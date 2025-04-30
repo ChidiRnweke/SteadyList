@@ -4,11 +4,15 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { getAllTasks } from "../lib/tasks"
-import { getAllProjects } from "../lib/projects"
 import { AlertCircle, Clock, ListTodo } from "lucide-react"
+import { type Task, type Project } from "../lib/types"
 
-export function DashboardMetrics() {
+interface DashboardMetricsProps {
+  tasks: Task[]
+  projects: Project[]
+}
+
+export function DashboardMetrics({ tasks, projects }: DashboardMetricsProps) {
   const [metrics, setMetrics] = useState({
     totalProjects: 0,
     totalTasks: 0,
@@ -21,7 +25,6 @@ export function DashboardMetrics() {
 
   useEffect(() => {
     const loadMetrics = async () => {
-      const [tasks, projects] = await Promise.all([getAllTasks(), getAllProjects()])
 
       const activeTasks = tasks.filter((task) => !task.deleted)
       const activeProjects = projects.filter((project) => !project.deleted)

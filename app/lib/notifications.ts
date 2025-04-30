@@ -1,93 +1,87 @@
 import { v4 as uuidv4 } from "uuid"
 import type { Notification } from "./types"
+import { prisma } from "./db"
 
-// Local storage key
-const NOTIFICATIONS_KEY = "mock_notifications"
-
-// Helper function to get notifications from localStorage
-function getNotificationsFromStorage(): Notification[] {
-  if (typeof window === "undefined") {
-    return []
-  }
-
-  const notificationsData = localStorage.getItem(NOTIFICATIONS_KEY)
-
-  if (!notificationsData) {
-    return []
-  }
-
-  try {
-    return JSON.parse(notificationsData)
-  } catch (error) {
-    console.error("Failed to parse notifications data:", error)
-    return []
-  }
-}
-
-// Helper function to save notifications to localStorage
-function saveNotificationsToStorage(notifications: Notification[]): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifications))
-}
-
-// Get all notifications
-export async function getNotifications(): Promise<Notification[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200))
-
-  const notifications = getNotificationsFromStorage()
-  return notifications.filter((notification) => !notification.read)
-}
-
-// Create a new notification
-export async function createNotification(data: {
+// Interface for the notification input
+interface NotificationInput {
   title: string
   message: string
-  taskId?: string
-  projectId?: string
-}): Promise<Notification> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  taskId: string
+  projectId: string
+}
 
-  const notifications = getNotificationsFromStorage()
-
-  const newNotification: Notification = {
-    id: uuidv4(),
-    title: data.title,
-    message: data.message,
-    createdAt: new Date().toISOString(),
-    userId: "user-1", // Mock user ID
-    read: false,
-    taskId: data.taskId,
-    projectId: data.projectId,
-  }
-
-  saveNotificationsToStorage([...notifications, newNotification])
-
-  return newNotification
+// Get all notifications for a user
+export async function getNotifications(): Promise<Notification[]> {
+  const notifications = await prisma.notification.findMany({
+    orderBy: { createdAt: 'desc' }
+  })
+  
+  return notifications.map((notification) => ({
+    ...notification,
+    createdAt: notification.createdAt.toISOString(),
+  })) 
 }
 
 // Mark a notification as read
 export async function markNotificationAsRead(id: string): Promise<boolean> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200))
+  const notification = await prisma.notification.findUnique({
+    where: { id }
+  })
 
-  const notifications = getNotificationsFromStorage()
-  const notificationIndex = notifications.findIndex((n) => n.id === id)
-
-  if (notificationIndex === -1) {
+  if (!notification) {
     return false
   }
 
-  notifications[notificationIndex] = {
-    ...notifications[notificationIndex],
-    read: true,
+  await prisma.notification.update({
+    where: { id },
+    data: { read: true }
+  })
+
+  return true
+}
+
+// Mark all notifications as read
+export async function markAllNotificationsAsRead(): Promise<boolean> {
+  await prisma.notification.updateMany({
+    where: { read: false },
+    data: { read: true }
+  })
+
+  return true
+}
+
+// Create a notification
+export async function createNotification(data: NotificationInput): Promise<Notification> {
+  const newNotification = await prisma.notification.create({
+    data: {
+      title: data.title,
+      message: data.message,
+      taskId: data.taskId,
+      projectId: data.projectId,
+      userId: "user-1", // Mock user ID, will be replaced with actual auth
+      read: false,
+    }
+  })
+
+  return {
+    ...newNotification,
+    createdAt: newNotification.createdAt.toISOString(),
+  }
+}
+
+// Delete a notification
+export async function deleteNotification(id: string): Promise<boolean> {
+  const notification = await prisma.notification.findUnique({
+    where: { id }
+  })
+
+  if (!notification) {
+    return false
   }
 
-  saveNotificationsToStorage(notifications)
+  await prisma.notification.delete({
+    where: { id }
+  })
 
   return true
 }

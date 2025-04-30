@@ -1,160 +1,192 @@
 import { v4 as uuidv4 } from "uuid"
 import type { Project, CreateProjectInput, UpdateProjectInput } from "./types"
-import { getTasksByProject } from "./tasks"
-
-// Local storage key
-const PROJECTS_KEY = "mock_projects"
-
-// Helper function to get projects from localStorage
-function getProjectsFromStorage(): Project[] {
-  if (typeof window === "undefined") {
-    return []
-  }
-
-  const projectsData = localStorage.getItem(PROJECTS_KEY)
-
-  if (!projectsData) {
-    return []
-  }
-
-  try {
-    return JSON.parse(projectsData)
-  } catch (error) {
-    console.error("Failed to parse projects data:", error)
-    return []
-  }
-}
-
-// Helper function to save projects to localStorage
-function saveProjectsToStorage(projects: Project[]): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
-}
+import { prisma } from "./db"
 
 // Get all projects
 export async function getAllProjects(): Promise<Project[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  const projects = getProjectsFromStorage()
-
-  // Calculate task counts for each project
-  const projectsWithCounts = await Promise.all(
-    projects.map(async (project) => {
-      const tasks = await getTasksByProject(project.id)
-      const activeTasks = tasks.filter((task) => !task.deleted)
-      const completedTaskCount = activeTasks.filter((task) => !task.deleted && task.status === "done").length
-      const blockedTaskCount = activeTasks.filter((task) => !task.deleted && task.status === "blocked").length
-
-      return {
-        ...project,
-        taskCount: activeTasks.length,
-        completedTaskCount,
-        blockedTaskCount,
+  const projects = await prisma.project.findMany({
+    where: { deleted: false },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      _count: {
+        select: {
+          tasks: {
+            where: {
+              deleted: false
+            }
+          }
+        }
+      },
+      tasks: {
+        where: {
+          deleted: false,
+          status: 'done'
+        },
+        select: {
+          id: true
+        }
       }
-    }),
-  )
+    }
+  })
 
-  return projectsWithCounts
+  return projects.map((project: any) => ({
+    ...project,
+    taskCount: project._count.tasks,
+    completedTaskCount: project.tasks.length,
+    blockedTaskCount: 0, // We'll need to add a separate query for this
+  })) as Project[]
 }
 
 // Get project by ID
 export async function getProjectById(id: string): Promise<Project | null> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200))
-
-  const projects = getProjectsFromStorage()
-  const project = projects.find((p) => p.id === id)
+  const project = await prisma.project.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          tasks: {
+            where: {
+              deleted: false
+            }
+          }
+        }
+      },
+      tasks: {
+        where: {
+          deleted: false,
+          status: 'done'
+        },
+        select: {
+          id: true
+        }
+      }
+    }
+  })
 
   if (!project) {
     return null
   }
 
-  // Calculate task counts
-  const tasks = await getTasksByProject(project.id)
-  const activeTasks = tasks.filter((task) => !task.deleted)
-  const completedTaskCount = activeTasks.filter((task) => task.status === "done").length
-  const blockedTaskCount = activeTasks.filter((task) => task.status === "blocked").length
+  // Get blocked tasks count
+  const blockedTasks = await prisma.task.count({
+    where: {
+      projectId: id,
+      deleted: false,
+      status: 'blocked'
+    }
+  })
 
   return {
     ...project,
-    taskCount: activeTasks.length,
-    completedTaskCount,
-    blockedTaskCount,
-  }
+    description: project.description || undefined,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+    taskCount: project._count.tasks,
+    completedTaskCount: project.tasks.length,
+    blockedTaskCount: blockedTasks,
+  } 
 }
 
 // Create a new project
 export async function createProject(data: CreateProjectInput): Promise<Project> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const newProject = await prisma.project.create({
+    data: {
+      name: data.name,
+      description: data.description || "",
+      userId: "user-1", // Mock user ID
+      deleted: false,
+    }
+  })
 
-  const projects = getProjectsFromStorage()
-
-  const newProject: Project = {
-    id: uuidv4(),
-    name: data.name,
-    description: data.description || "",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    userId: "user-1", // Mock user ID
-    deleted: false,
+  return {
+    ...newProject,
     taskCount: 0,
+    description: newProject.description || undefined,
     completedTaskCount: 0,
     blockedTaskCount: 0,
+    createdAt: newProject.createdAt.toISOString(),
+    updatedAt: newProject.updatedAt.toISOString(),
   }
-
-  saveProjectsToStorage([...projects, newProject])
-
-  return newProject
 }
 
 // Update a project
 export async function updateProject(id: string, data: UpdateProjectInput): Promise<Project | null> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const project = await prisma.project.findUnique({
+    where: { id }
+  })
 
-  const projects = getProjectsFromStorage()
-  const projectIndex = projects.findIndex((p) => p.id === id)
-
-  if (projectIndex === -1) {
+  if (!project) {
     return null
   }
 
-  const updatedProject = {
-    ...projects[projectIndex],
-    ...data,
-    updatedAt: new Date().toISOString(),
+  const updatedProject = await prisma.project.update({
+    where: { id },
+    data: {
+      name: data.name,
+      description: data.description,
+    },
+    include: {
+      _count: {
+        select: {
+          tasks: {
+            where: {
+              deleted: false
+            }
+          }
+        }
+      },
+      tasks: {
+        where: {
+          deleted: false,
+          status: 'done'
+        },
+        select: {
+          id: true
+        }
+      }
+    }
+  })
+
+  // Get blocked tasks count
+  const blockedTasks = await prisma.task.count({
+    where: {
+      projectId: id,
+      deleted: false,
+      status: 'blocked'
+    }
+  })
+
+  return {
+    ...updatedProject,
+    taskCount: updatedProject._count.tasks,
+    completedTaskCount: updatedProject.tasks.length,
+    blockedTaskCount: blockedTasks,
+    description: updatedProject.description || undefined,
+    createdAt: updatedProject.createdAt.toISOString(),
+    updatedAt: updatedProject.updatedAt.toISOString(),
   }
-
-  projects[projectIndex] = updatedProject
-  saveProjectsToStorage(projects)
-
-  return updatedProject
 }
 
 // Soft delete a project
 export async function softDeleteProject(id: string): Promise<boolean> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const project = await prisma.project.findUnique({
+    where: { id }
+  })
 
-  const projects = getProjectsFromStorage()
-  const projectIndex = projects.findIndex((p) => p.id === id)
-
-  if (projectIndex === -1) {
+  if (!project) {
     return false
   }
 
-  projects[projectIndex] = {
-    ...projects[projectIndex],
-    deleted: true,
-    updatedAt: new Date().toISOString(),
-  }
+  await prisma.project.update({
+    where: { id },
+    data: { deleted: true }
+  })
 
-  saveProjectsToStorage(projects)
+  // Also mark all tasks in this project as deleted
+  await prisma.task.updateMany({
+    where: { projectId: id },
+    data: { deleted: true }
+  })
 
   return true
 }

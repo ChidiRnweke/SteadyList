@@ -5,67 +5,22 @@ import { Link } from "react-router"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
-import { getAllTasks } from "../lib/tasks"
-import { getProjectById } from "../lib/projects"
-import type { Task } from "../lib/types"
+import type { Project, Task } from "../lib/types"
 import { ArrowRight, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
-export function DashboardTasks() {
-  const [tasks, setTasks] = useState<(Task & { projectName: string })[]>([])
-  const [loading, setLoading] = useState(true)
+interface DashboardTasksProps {
+  tasks: Task[]
+  projects: Project[]
+}
 
-  useEffect(() => {
-    const loadTasks = async () => {
-      setLoading(true)
-      try {
-        const allTasks = await getAllTasks()
+const getProjectName = (projectId: string, projects: Project[]) => {
+  const project = projects.find((p) => p.id === projectId)
+  return project ? project.name : "Unknown Project"
+}
 
-        // Get tasks that are either due soon or blocked
-        const now = new Date()
-        const in48Hours = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+export function DashboardTasks({ tasks, projects }: DashboardTasksProps) {
 
-        const importantTasks = allTasks
-          .filter(
-            (task) =>
-              !task.deleted &&
-              (task.status === "blocked" ||
-                (task.dueDate && new Date(task.dueDate) <= in48Hours && task.status !== "done")),
-          )
-          .sort((a, b) => {
-            // Sort by due date (if available), then by status (blocked first)
-            if (a.dueDate && b.dueDate) {
-              return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
-            }
-            if (a.dueDate) return -1
-            if (b.dueDate) return 1
-            if (a.status === "blocked" && b.status !== "blocked") return -1
-            if (a.status !== "blocked" && b.status === "blocked") return 1
-            return 0
-          })
-          .slice(0, 5)
-
-        // Get project names for each task
-        const tasksWithProjects = await Promise.all(
-          importantTasks.map(async (task) => {
-            const project = await getProjectById(task.projectId)
-            return {
-              ...task,
-              projectName: project?.name || "Unknown Project",
-            }
-          }),
-        )
-
-        setTasks(tasksWithProjects)
-      } catch (error) {
-        console.error("Failed to load tasks:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadTasks()
-  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,11 +65,7 @@ export function DashboardTasks() {
         </Link>
       </CardHeader>
       <CardContent className="pb-2">
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : tasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No important tasks</p>
           </div>
@@ -132,7 +83,7 @@ export function DashboardTasks() {
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-muted-foreground mb-2">{task.projectName}</p>
+                  <p className="text-sm text-muted-foreground mb-2">{getProjectName(task.projectId, projects)}</p>
 
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline" className={getPriorityColor(task.priority)}>

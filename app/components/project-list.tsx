@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Form } from "react-router";
 import { Link } from "react-router"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
@@ -8,64 +8,35 @@ import { Button } from "./ui/button"
 import { Progress } from "./ui/progress"
 import { Edit, MoreHorizontal, Sparkles, Trash2 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
-import { getAllProjects, softDeleteProject } from "../lib/projects"
-import { getTasksByProject } from "../lib/tasks"
-import type { Project } from "../lib/types"
+import type { Project, Task } from "../lib/types"
 import { formatDate } from "../lib/utils"
 
-export function ProjectList() {
-  const [projects, setProjects] = useState<(Project & { progress: number })[]>([])
-  const [loading, setLoading] = useState(true)
+interface ProjectListProps {
+  projects: Project[]
+  tasks: Task[]
+}
 
-  useEffect(() => {
-    const loadProjects = async () => {
-      setLoading(true)
-      try {
-        const allProjects = await getAllProjects()
-        const activeProjects = allProjects.filter((p) => !p.deleted)
+export function ProjectList({ projects, tasks }: ProjectListProps) {
 
-        // Get progress for each project
-        const projectsWithProgress = await Promise.all(
-          activeProjects.map(async (project) => {
-            const tasks = await getTasksByProject(project.id)
-            const activeTasks = tasks.filter((t) => !t.deleted)
-            const completedTasks = activeTasks.filter((t) => t.status === "done")
 
-            const progress = activeTasks.length > 0 ? Math.round((completedTasks.length / activeTasks.length) * 100) : 0
+  const activeProjects = projects.filter((p) => !p.deleted)
 
-            return {
-              ...project,
-              progress,
-              taskCount: activeTasks.length,
-              completedTaskCount: completedTasks.length,
-              blockedTaskCount: activeTasks.filter((t) => t.status === "blocked").length,
-            }
-          }),
-        )
+  const projectsWithProgress =
+    activeProjects.map((project) => {
+      const activeTasks = tasks.filter((t) => !t.deleted)
+      const completedTasks = activeTasks.filter((t) => t.status === "done")
 
-        setProjects(projectsWithProgress)
-      } catch (error) {
-        console.error("Failed to load projects:", error)
-      } finally {
-        setLoading(false)
+      const progress = activeTasks.length > 0 ? Math.round((completedTasks.length / activeTasks.length) * 100) : 0
+
+      return {
+        ...project,
+        progress,
+        taskCount: activeTasks.length,
+        completedTaskCount: completedTasks.length,
+        blockedTaskCount: activeTasks.filter((t) => t.status === "blocked").length,
       }
-    }
+    })
 
-    loadProjects()
-  }, [])
-
-  const handleDelete = async (id: string) => {
-    await softDeleteProject(id)
-    setProjects(projects.filter((project) => project.id !== id))
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
 
   if (projects.length === 0) {
     return (
@@ -81,7 +52,7 @@ export function ProjectList() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects.map((project) => (
+      {projectsWithProgress.map((project) => (
         <Card key={project.id} className="overflow-hidden border-slate-200 transition-all hover:shadow-md">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
@@ -106,10 +77,12 @@ export function ProjectList() {
                       AI Generate Tasks
                     </DropdownMenuItem>
                   </Link>
-                  <DropdownMenuItem onClick={() => handleDelete(project.id)} className="text-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
+                  <Form method="delete" action={`/projects/${project.id}`}>
+                    <DropdownMenuItem className="text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </Form>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

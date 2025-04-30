@@ -1,12 +1,21 @@
-import { getSession } from "../lib/auth"
+import { getAllProjects } from "~/lib/projects"
+import { getAllTasks } from "~/lib/tasks"
 import { DashboardHeader } from "../components/dashboard-header"
 import { DashboardMetrics } from "../components/dashboard-metrics"
-import { DashboardProjects } from "../components/dashboard-projects"
 import { DashboardTasks } from "../components/dashboard-tasks"
-import { redirect } from "react-router"
+import { DashboardProjects } from "../components/dashboard-projects"
+import type { Task, Project } from "~/lib/types"
+import type { Route } from './+types/_index'
 
-export default function Home() {
+export async function loader(): Promise<{ tasks: Task[], projects: Project[] }> {
+  const tasks = await getAllTasks()
+  const projects = await getAllProjects()
+  return { tasks, projects }
+}
 
+
+export default function Home({ loaderData }: Route.ComponentProps) {
+  const { tasks, projects } = loaderData
   return (
     <div className="container mx-auto py-6 space-y-8">
       <DashboardHeader />
@@ -14,11 +23,11 @@ export default function Home() {
       <div className="grid grid-cols-1 gap-8">
         <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
 
-        <DashboardMetrics />
+        <DashboardMetrics tasks={tasks} projects={projects} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <DashboardProjects />
-          <DashboardTasks />
+          <DashboardProjects projects={projects} tasks={tasks} />
+          <DashboardTasks tasks={tasks} projects={projects} />
         </div>
       </div>
     </div>

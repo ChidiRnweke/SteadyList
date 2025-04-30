@@ -1,88 +1,71 @@
 import { v4 as uuidv4 } from "uuid"
 import type { Task, CreateTaskInput, UpdateTaskInput } from "./types"
 import { createNotification } from "./notifications"
-
-// Local storage key
-const TASKS_KEY = "mock_tasks"
-
-// Helper function to get tasks from localStorage
-function getTasksFromStorage(): Task[] {
-  if (typeof window === "undefined") {
-    return []
-  }
-
-  const tasksData = localStorage.getItem(TASKS_KEY)
-
-  if (!tasksData) {
-    return []
-  }
-
-  try {
-    return JSON.parse(tasksData)
-  } catch (error) {
-    console.error("Failed to parse tasks data:", error)
-    return []
-  }
-}
-
-// Helper function to save tasks to localStorage
-function saveTasksToStorage(tasks: Task[]): void {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  localStorage.setItem(TASKS_KEY, JSON.stringify(tasks))
-}
+import { prisma } from "./db"
 
 // Get all tasks
 export async function getAllTasks(): Promise<Task[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
-
-  return getTasksFromStorage()
+  const tasks = await prisma.task.findMany({
+    where: { deleted: false },
+    orderBy: { updatedAt: 'desc' }
+  })
+  
+  return tasks.map((task) => ({
+    ...task,
+    description: task.description || undefined,
+    priority: task.priority as "low" | "medium" | "high",
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    dueDate: task.dueDate?.toISOString() || undefined,
+    status: task.status as "todo" | "in-progress" | "blocked" | "done",
+  }))
 }
 
 // Get tasks by project ID
 export async function getTasksByProject(projectId: string): Promise<Task[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200))
-
-  const tasks = getTasksFromStorage()
-  return tasks.filter((task) => task.projectId === projectId)
+  const tasks = await prisma.task.findMany({
+    where: { 
+      projectId,
+      deleted: false 
+    },
+    orderBy: { updatedAt: 'desc' }
+  })
+  
+  return tasks.map((task) => ({
+    ...task,
+    description: task.description || undefined,
+    priority: task.priority as "low" | "medium" | "high",
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+    dueDate: task.dueDate?.toISOString() || undefined,
+    status: task.status as "todo" | "in-progress" | "blocked" | "done",
+  }))
 }
 
 // Get task by ID
 export async function getTaskById(id: string): Promise<Task | null> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 200))
-
-  const tasks = getTasksFromStorage()
-  return tasks.find((task) => task.id === id) || null
+  const task = await prisma.task.findUnique({
+    where: { id }
+  })
+  
+  return task as Task | null
 }
 
 // Create a new task
 export async function createTask(data: CreateTaskInput): Promise<Task> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
-
-  const tasks = getTasksFromStorage()
-
-  const newTask: Task = {
-    id: uuidv4(),
-    title: data.title,
-    description: data.description || "",
-    dueDate: data.dueDate ? data.dueDate.toISOString() : undefined,
-    priority: data.priority,
-    status: data.status,
-    reminder: data.reminder || false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    projectId: data.projectId,
-    userId: "user-1", // Mock user ID
-    deleted: false,
-  }
-
-  saveTasksToStorage([...tasks, newTask])
+  const newTask = await prisma.task.create({
+    data: {
+      title: data.title,
+      description: data.description || "",
+      dueDate: data.dueDate,
+      priority: data.priority,
+      status: data.status,
+      reminder: data.reminder || false,
+      projectId: data.projectId,
+      userId: "user-1", // Mock user ID, will be replaced with actual auth
+      deleted: false,
+    }
+  })
 
   // Create a notification if the task has a due date and reminder is set
   if (newTask.dueDate && newTask.reminder) {
@@ -100,30 +83,39 @@ export async function createTask(data: CreateTaskInput): Promise<Task> {
     }
   }
 
-  return newTask
+  return {
+    ...newTask,
+    createdAt: newTask.createdAt.toISOString(),
+    updatedAt: newTask.updatedAt.toISOString(),
+    dueDate: newTask.dueDate?.toISOString() || undefined,
+    status: newTask.status as "todo" | "in-progress" | "blocked" | "done",
+    description: newTask.description || undefined,
+    priority: newTask.priority as "low" | "medium" | "high",
+  }
 }
 
 // Update a task
 export async function updateTask(id: string, data: UpdateTaskInput): Promise<Task | null> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const task = await prisma.task.findUnique({
+    where: { id }
+  })
 
-  const tasks = getTasksFromStorage()
-  const taskIndex = tasks.findIndex((t) => t.id === id)
-
-  if (taskIndex === -1) {
+  if (!task) {
     return null
   }
 
-  const updatedTask = {
-    ...tasks[taskIndex],
-    ...data,
-    dueDate: data.dueDate ? data.dueDate.toISOString() : tasks[taskIndex].dueDate,
-    updatedAt: new Date().toISOString(),
-  }
-
-  tasks[taskIndex] = updatedTask
-  saveTasksToStorage(tasks)
+  const updatedTask = await prisma.task.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      dueDate: data.dueDate,
+      priority: data.priority,
+      status: data.status,
+      reminder: data.reminder,
+      projectId: data.projectId,
+    }
+  })
 
   // Create a notification if the task has a due date and reminder is set
   if (updatedTask.dueDate && updatedTask.reminder) {
@@ -141,52 +133,57 @@ export async function updateTask(id: string, data: UpdateTaskInput): Promise<Tas
     }
   }
 
-  return updatedTask
+  return {
+    ...updatedTask,
+    createdAt: updatedTask.createdAt.toISOString(),
+    updatedAt: updatedTask.updatedAt.toISOString(),
+    dueDate: updatedTask.dueDate?.toISOString() || undefined,
+    status: updatedTask.status as "todo" | "in-progress" | "blocked" | "done",
+    description: updatedTask.description || undefined,
+    priority: updatedTask.priority as "low" | "medium" | "high",
+  }
 }
 
 // Update task status
 export async function updateTaskStatus(id: string, status: string): Promise<Task | null> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300))
+  const task = await prisma.task.findUnique({
+    where: { id }
+  })
 
-  const tasks = getTasksFromStorage()
-  const taskIndex = tasks.findIndex((t) => t.id === id)
-
-  if (taskIndex === -1) {
+  if (!task) {
     return null
   }
 
-  const updatedTask = {
-    ...tasks[taskIndex],
-    status,
-    updatedAt: new Date().toISOString(),
+  const updatedTask = await prisma.task.update({
+    where: { id },
+    data: { status }
+  })
+
+  return {
+    ...updatedTask,
+    createdAt: updatedTask.createdAt.toISOString(),
+    updatedAt: updatedTask.updatedAt.toISOString(),
+    dueDate: updatedTask.dueDate?.toISOString() || undefined,
+    status: updatedTask.status as "todo" | "in-progress" | "blocked" | "done",
+    description: updatedTask.description || undefined,
+    priority: updatedTask.priority as "low" | "medium" | "high",
   }
-
-  tasks[taskIndex] = updatedTask
-  saveTasksToStorage(tasks)
-
-  return updatedTask
 }
 
 // Soft delete a task
 export async function softDeleteTask(id: string): Promise<boolean> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const task = await prisma.task.findUnique({
+    where: { id }
+  })
 
-  const tasks = getTasksFromStorage()
-  const taskIndex = tasks.findIndex((t) => t.id === id)
-
-  if (taskIndex === -1) {
+  if (!task) {
     return false
   }
 
-  tasks[taskIndex] = {
-    ...tasks[taskIndex],
-    deleted: true,
-    updatedAt: new Date().toISOString(),
-  }
-
-  saveTasksToStorage(tasks)
+  await prisma.task.update({
+    where: { id },
+    data: { deleted: true }
+  })
 
   return true
 }
