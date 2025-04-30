@@ -31,7 +31,6 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
   const handleDelete = async () => {
     await onDelete(project.id)
     navigate("/projects")
-    navigate(0)
   }
 
   return (
@@ -43,26 +42,27 @@ export function ProjectHeader({ project }: ProjectHeaderProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Link to={`/projects/${project.id}/tasks/new`}>
-            <Button className="bg-primary hover:bg-primary/90">
+          <Button className="bg-primary hover:bg-primary/90" asChild>
+            <Link to={`/projects/${project.id}/tasks/new`} >
               <Plus className="mr-2 h-4 w-4" />
               Add Task
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
-          <Link to={`/projects/${project.id}/ai-tasks`}>
-            <Button variant="outline" className="border-secondary/20 text-secondary hover:bg-secondary/10">
+          <Button variant="outline" className="border-secondary/20 text-secondary hover:bg-secondary/10" asChild>
+            <Link to={`/projects/${project.id}/tasks/new`} >
               <Sparkles className="mr-2 h-4 w-4" />
               AI Generate
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
-          <Link to={`/projects/${project.id}/edit`}>
-            <Button variant="outline">
+
+          <Button variant="outline" asChild>
+            <Link to={`/projects/${project.id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
-            </Button>
-          </Link>
+            </Link>
+          </Button>
 
           <AlertDialog>
             <AlertDialogTrigger asChild>

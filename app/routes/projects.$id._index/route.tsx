@@ -1,5 +1,4 @@
 import { redirect } from "react-router"
-import { getSession } from "../../lib/auth"
 import { getProjectById, softDeleteProject } from "../../lib/projects"
 import { getTasksByProject } from "../../lib/tasks"
 import { getNotesByProject } from "../../lib/notes"
@@ -22,13 +21,20 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 export async function loader({ params }: Route.LoaderArgs) {
   const projectId = params.id;
-  const project = await getProjectById(projectId);
-  const tasks = await getTasksByProject(projectId);
-  const notes = await getNotesByProject(projectId);
+  const [project, tasks, notes] = await Promise.all([
+    getProjectById(projectId),
+    getTasksByProject(projectId),
+    getNotesByProject(projectId),
+  ]);
 
-  if (!project) {
-    return redirect("/projects");
-  }
+  return { project, tasks, notes };
+}
+
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const serverData = await serverLoader();
+  const project = serverData.project;
+  const tasks = serverData.tasks;
+  const notes = serverData.notes;
 
   return { project, tasks, notes };
 }

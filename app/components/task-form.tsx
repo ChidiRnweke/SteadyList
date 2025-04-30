@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useNavigate } from "react-router"
+import { Link } from "react-router"
+import { FormProvider } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -18,6 +18,7 @@ import { format } from "date-fns"
 import { cn } from "../lib/utils"
 import { Switch } from "./ui/switch"
 import { useFetcher } from "react-router"
+import { Form as ReactRouterForm } from "react-router"
 
 
 
@@ -35,7 +36,6 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ projectId }: TaskFormProps) {
-  const navigate = useNavigate()
   const fetcher = useFetcher()
   let busy = fetcher.state !== "idle";
 
@@ -61,8 +61,12 @@ export function TaskForm({ projectId }: TaskFormProps) {
 
   return (
     <Card className="max-w-2xl mx-auto p-6 border-slate-200 shadow-sm">
-      <Form {...form}>
-        <fetcher.Form method="post" action={`/projects/${projectId}/tasks`} className="space-y-6">
+      <FormProvider {...form}>
+        <ReactRouterForm
+          method="post"
+          action={`/projects/${projectId}/tasks`}
+          className="space-y-6"
+        >
           <FormField
             control={form.control}
             name="title"
@@ -225,15 +229,17 @@ export function TaskForm({ projectId }: TaskFormProps) {
           </div>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-              Cancel
+            <Button type="button" variant="outline">
+              <Link to={`/projects/${projectId}`}>
+                Cancel
+              </Link>
             </Button>
             <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
               {busy ? "Saving..." : "Create Task"}
             </Button>
           </div>
-        </fetcher.Form>
-      </Form>
+        </ReactRouterForm>
+      </FormProvider>
     </Card>
   )
 }

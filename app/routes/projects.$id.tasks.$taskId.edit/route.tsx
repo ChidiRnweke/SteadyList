@@ -1,6 +1,3 @@
-import { redirect } from "react-router"
-import { getSession } from "../../lib/auth"
-import { getProjectById } from "../../lib/projects"
 import { getTaskById } from "../../lib/tasks"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { TaskForm } from "../../components/task-form"
@@ -24,7 +21,7 @@ export default function EditTaskPage(loaderData: Route.ComponentProps) {
       <div>
         <h1 className="text-3xl font-bold text-primary mb-2">Edit Task</h1>
         <p className="text-muted-foreground mb-6">Update task details</p>
-        <TaskForm projectId={task.projectId} task={task!} />
+        <TaskForm projectId={task.projectId} />
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { createTask } from "~/lib/tasks"
 import type { Route } from "./+types/route"
+import { redirect } from "react-router"
 
 export async function action({ request, params }: Route.ActionArgs) {
     const method = request.method
@@ -25,6 +26,7 @@ export async function action({ request, params }: Route.ActionArgs) {
             reminder,
             projectId: params.id
         })
+        return redirect(`/projects/${params.id}`)
     }
 }
 
