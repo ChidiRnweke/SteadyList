@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 import type { Task, CreateTaskInput, UpdateTaskInput } from "./types"
 import { createNotification } from "./notifications"
-import { prisma } from "./db"
+import prisma from "./prisma"
 
 // Get all tasks
 export async function getAllTasks(): Promise<Task[]> {

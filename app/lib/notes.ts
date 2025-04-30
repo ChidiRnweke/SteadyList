@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 import type { Note, CreateNoteInput, UpdateNoteInput } from "./types"
-import { prisma } from "./db"
+import prisma from "./prisma"
 
 // Get all notes
 export async function getAllNotes(): Promise<Note[]> {

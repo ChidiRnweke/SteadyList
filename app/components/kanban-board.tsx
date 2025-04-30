@@ -5,11 +5,11 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-p
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { TaskCard } from "./task-card"
-import type { Task } from "../lib/types"
-import { getTasksByProject, updateTaskStatus } from "../lib/tasks"
+import type { Project, Task } from "../lib/types"
 
 interface KanbanBoardProps {
-  projectId: string
+  tasks: Task[]
+  project: Project
 }
 
 type Column = {
@@ -19,37 +19,30 @@ type Column = {
   color: string
 }
 
-export function KanbanBoard({ projectId }: KanbanBoardProps) {
+
+export function KanbanBoard({ tasks, project }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Column[]>([
     { id: "todo", title: "To Do", tasks: [], color: "border-secondary bg-secondary/5" },
     { id: "in-progress", title: "In Progress", tasks: [], color: "border-amber-500 bg-amber-500/5" },
     { id: "blocked", title: "Blocked", tasks: [], color: "border-destructive bg-destructive/5" },
     { id: "done", title: "Done", tasks: [], color: "border-green-500 bg-green-500/5" },
   ])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadTasks = async () => {
-      setLoading(true)
-      try {
-        const tasks = await getTasksByProject(projectId)
-        const activeTasks = tasks.filter((task) => !task.deleted)
+    const loadTasks = () => {
+      const activeTasks = tasks.filter((task) => !task.deleted)
 
-        setColumns(
-          columns.map((column) => ({
-            ...column,
-            tasks: activeTasks.filter((task) => task.status === column.id),
-          })),
-        )
-      } catch (error) {
-        console.error("Failed to load tasks:", error)
-      } finally {
-        setLoading(false)
-      }
+      setColumns(
+        columns.map((column) => ({
+          ...column,
+          tasks: activeTasks.filter((task) => task.status === column.id),
+        })),
+      )
+
     }
 
     loadTasks()
-  }, [projectId])
+  }, [tasks])
 
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result
@@ -82,7 +75,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       const [movedTask] = sourceTasks.splice(source.index, 1)
 
       const destTasks = Array.from(destColumn.tasks)
-      destTasks.splice(destination.index, 0, { ...movedTask, status: destination.droppableId })
+      destTasks.splice(destination.index, 0, { ...movedTask, status: destination.droppableId as 'todo' | 'in-progress' | 'blocked' | 'done' })
 
       const newColumns = columns.map((col) => {
         if (col.id === source.droppableId) {
@@ -97,17 +90,10 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       setColumns(newColumns)
 
       // Update task status in the database
-      await updateTaskStatus(draggableId, destination.droppableId)
+      console.log(newColumns)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -133,7 +119,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                         <Draggable key={task.id} draggableId={task.id} index={index}>
                           {(provided) => (
                             <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                              <TaskCard task={task} projectId={projectId} />
+                              <TaskCard task={task} projectId={task.projectId} />
                             </div>
                           )}
                         </Draggable>

@@ -10,7 +10,7 @@ import type { Route } from './+types/_index'
 export async function loader(): Promise<{ tasks: Task[], projects: Project[] }> {
   const tasks = await getAllTasks()
   const projects = await getAllProjects()
-  return { tasks, projects }
+  return { tasks: [], projects: [] }
 }
 
 
