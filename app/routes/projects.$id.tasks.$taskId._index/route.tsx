@@ -1,4 +1,4 @@
-import { softDeleteTask } from "~/lib/tasks"
+import { softDeleteTask } from "~/lib/services/tasks"
 import type { Route } from "./+types/route"
 
 export async function action({ request, params }: Route.ActionArgs) {

@@ -1,4 +1,4 @@
-import { getTaskById } from "../../lib/tasks"
+import { getTaskById } from "../../lib/services/tasks"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { TaskForm } from "../../components/task-form"
 import type { Task } from "~/lib/types"

@@ -1,5 +1,5 @@
 
-import { getNoteById } from "../../lib/notes"
+import { getNoteById } from "../../lib/services/notes"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { NoteForm } from "../../components/note-form"
 import type { Note } from "../../lib/types"

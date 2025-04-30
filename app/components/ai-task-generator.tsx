@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "./ui/form"
 import { Textarea } from "./ui/textarea"
 import { Checkbox } from "./ui/checkbox"
-import { createTask } from "../lib/tasks"
+import { createTask } from "../lib/services/tasks"
 import { Sparkles } from "lucide-react"
 
 interface AITaskGeneratorProps {
@@ -286,9 +286,8 @@ export function AITaskGenerator({ projectId, projectName }: AITaskGeneratorProps
               {generatedTasks.map((task, index) => (
                 <div
                   key={index}
-                  className={`p-4 border rounded-lg ${
-                    selectedTasks.includes(index.toString()) ? "border-primary bg-primary/5" : "border-slate-200"
-                  }`}
+                  className={`p-4 border rounded-lg ${selectedTasks.includes(index.toString()) ? "border-primary bg-primary/5" : "border-slate-200"
+                    }`}
                 >
                   <div className="flex items-start gap-3">
                     <Checkbox

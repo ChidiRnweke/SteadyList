@@ -5,8 +5,8 @@ import { ProjectList } from "../../components/project-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
 import { Link } from "react-router"
-import { getAllProjects, createProject } from "~/lib/projects"
-import { getAllTasks } from "~/lib/tasks"
+import { getAllProjects, createProject } from "~/lib/services/projects"
+import { getAllTasks } from "~/lib/services/tasks"
 import type { Route } from "./+types/route"
 
 

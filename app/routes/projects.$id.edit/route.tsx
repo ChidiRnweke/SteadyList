@@ -1,5 +1,5 @@
 import { redirect } from "react-router"
-import { getProjectById } from "../../lib/projects"
+import { getProjectById } from "../../lib/services/projects"
 import { DashboardHeader } from "../../components/dashboard-header"
 import { ProjectForm } from "../../components/project-form"
 import type { Project } from "~/lib/types"
