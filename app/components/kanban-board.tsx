@@ -8,6 +8,19 @@ import { TaskCard } from "./task-card"
 import type { Task } from "../lib/types"
 import { useNavigation, useFetcher } from "react-router"
 import { toast } from "sonner"
+import { Search, Filter, Plus, ArrowUpDown, X } from "lucide-react"
+import { Input } from "./ui/input"
+import { Button } from "./ui/button"
+import { Link } from "react-router"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuItem
+} from "./ui/dropdown-menu"
 
 interface KanbanBoardProps {
   tasks: Task[]
@@ -28,6 +41,10 @@ type PendingUpdate = {
   prevStatus: string;
 }
 
+// Define filter options
+type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
+type SortOption = 'newest' | 'oldest' | 'priority' | 'alphabetical';
+
 export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps) {
   const fetcher = useFetcher();
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
@@ -35,6 +52,11 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
 
   // Store local tasks that include our optimistic updates
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
 
   // Use a ref to track pending updates to avoid race conditions
   const pendingUpdates = useRef<PendingUpdate[]>([]);
@@ -106,17 +128,56 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     { id: "done", title: "Done", color: "border-green-500 bg-green-500/5" },
   ];
 
-  // Memoize our populated columns for performance
-  const populatedColumns = useMemo(() => {
-    // Only show non-deleted tasks
-    const activeTasks = localTasks.filter(task => !task.deleted);
+  // Filter and sort tasks
+  const filteredAndSortedTasks = useMemo(() => {
+    // First filter out deleted tasks
+    let result = localTasks.filter(task => !task.deleted);
 
-    // Group tasks by status
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(task =>
+        task.title.toLowerCase().includes(query) ||
+        (task.description && task.description.toLowerCase().includes(query))
+      );
+    }
+
+    // Apply priority filter
+    if (priorityFilter !== 'all') {
+      result = result.filter(task => task.priority === priorityFilter);
+    }
+
+    // Apply sorting
+    return result.sort((a, b) => {
+      switch (sortOption) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'priority': {
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        case 'alphabetical':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+  }, [localTasks, searchQuery, priorityFilter, sortOption]);
+
+  // Populate columns with filtered tasks
+  const populatedColumns = useMemo(() => {
     return columnDefinitions.map(column => ({
       ...column,
-      tasks: activeTasks.filter(task => task.status === column.id)
+      tasks: filteredAndSortedTasks.filter(task => task.status === column.id)
     }));
-  }, [localTasks]);
+  }, [filteredAndSortedTasks]);
+
+  // Calculate total tasks after filtering
+  const totalFilteredTasks = useMemo(() => {
+    return filteredAndSortedTasks.length;
+  }, [filteredAndSortedTasks]);
 
   // Effect to handle server responses
   useEffect(() => {
@@ -221,6 +282,18 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     );
   };
 
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPriorityFilter('all');
+    setSortOption('newest');
+  };
+
+  // Handle search input
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
   // If we have no tasks yet, show a loading state or empty state
   if (localTasks.length === 0) {
     return (
@@ -248,59 +321,212 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
 
   // Main render with the kanban board
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {populatedColumns.map((column) => (
-          <div key={column.id} className="flex flex-col h-full">
-            <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-medium">{column.title}</CardTitle>
-                  <Badge variant="outline">{column.tasks.length}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-grow overflow-hidden pt-0">
-                <Droppable droppableId={column.id}>
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-3 min-h-[200px] overflow-y-auto max-h-[calc(100vh-300px)] p-1"
-                    >
-                      {column.tasks.map((task, index) => (
-                        <Draggable
-                          key={task.id}
-                          draggableId={task.id}
-                          index={index}
-                          isDragDisabled={updatingTaskId === task.id}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`
-                                transition-all duration-200
-                                ${updatingTaskId === task.id ? "opacity-60" : ""}
-                                ${snapshot.isDragging ? "shadow-lg scale-105 z-10" : ""}
-                              `}
-                              data-task-id={task.id}
-                              data-status={task.status}
-                            >
-                              <TaskCard task={task} projectId={projectId} />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </CardContent>
-            </Card>
-          </div>
-        ))}
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between pb-2">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search tasks..."
+            className="pl-9 w-full"
+            value={searchQuery}
+            onChange={handleSearchChange}
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-0.5 top-0.5 h-7 w-7 rounded-full p-0"
+              onClick={() => setSearchQuery('')}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Clear search</span>
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <Filter className="h-3.5 w-3.5" />
+                <span>Priority</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={priorityFilter === 'all'}
+                onCheckedChange={() => setPriorityFilter('all')}
+              >
+                All Priorities
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={priorityFilter === 'high'}
+                onCheckedChange={() => setPriorityFilter('high')}
+              >
+                High
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={priorityFilter === 'medium'}
+                onCheckedChange={() => setPriorityFilter('medium')}
+              >
+                Medium
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={priorityFilter === 'low'}
+                onCheckedChange={() => setPriorityFilter('low')}
+              >
+                Low
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span>Sort</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={sortOption === 'newest'}
+                onCheckedChange={() => setSortOption('newest')}
+              >
+                Newest First
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={sortOption === 'oldest'}
+                onCheckedChange={() => setSortOption('oldest')}
+              >
+                Oldest First
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={sortOption === 'priority'}
+                onCheckedChange={() => setSortOption('priority')}
+              >
+                Priority
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={sortOption === 'alphabetical'}
+                onCheckedChange={() => setSortOption('alphabetical')}
+              >
+                Alphabetical
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {(searchQuery || priorityFilter !== 'all' || sortOption !== 'newest') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="text-xs"
+            >
+              Clear
+            </Button>
+          )}
+
+          <Link to={`/projects/${projectId}/tasks/new`}>
+            <Button size="sm" className="flex items-center gap-1 ml-2">
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Task</span>
+            </Button>
+          </Link>
+        </div>
       </div>
-    </DragDropContext>
+
+      {/* Filtered results info */}
+      {(searchQuery || priorityFilter !== 'all') && (
+        <div className="text-sm text-muted-foreground mb-2">
+          Showing {totalFilteredTasks} of {localTasks.filter(t => !t.deleted).length} tasks
+          {searchQuery && <span> matching "<strong>{searchQuery}</strong>"</span>}
+          {priorityFilter !== 'all' && (
+            <span> with <Badge variant="outline" className="ml-1 font-normal text-xs">
+              {priorityFilter} priority
+            </Badge></span>
+          )}
+        </div>
+      )}
+
+      {/* Kanban board */}
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {populatedColumns.map((column) => (
+            <div key={column.id} className="flex flex-col h-full">
+              <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-medium">{column.title}</CardTitle>
+                    <Badge variant="outline">{column.tasks.length}</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow overflow-hidden pt-0">
+                  <Droppable droppableId={column.id}>
+                    {(provided) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-3 min-h-[200px] overflow-y-auto max-h-[calc(100vh-300px)] p-1"
+                      >
+                        {column.tasks.length > 0 ? (
+                          column.tasks.map((task, index) => (
+                            <Draggable
+                              key={task.id}
+                              draggableId={task.id}
+                              index={index}
+                              isDragDisabled={updatingTaskId === task.id}
+                            >
+                              {(provided, snapshot) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`
+                                    transition-all duration-200
+                                    ${updatingTaskId === task.id ? "opacity-60" : ""}
+                                    ${snapshot.isDragging ? "shadow-lg scale-105 z-10" : ""}
+                                  `}
+                                  data-task-id={task.id}
+                                  data-status={task.status}
+                                >
+                                  <TaskCard task={task} projectId={projectId} />
+                                </div>
+                              )}
+                            </Draggable>
+                          ))
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground text-sm border border-dashed rounded-md">
+                            {searchQuery || priorityFilter !== 'all' ? (
+                              <p>No matching tasks</p>
+                            ) : (
+                              <>
+                                <p className="mb-2">No tasks in this column</p>
+                                <Link to={`/projects/${projectId}/tasks/new?status=${column.id}`}>
+                                  <Button variant="ghost" size="sm" className="text-xs">
+                                    <Plus className="h-3.5 w-3.5 mr-1" />
+                                    Add task
+                                  </Button>
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
+      </DragDropContext>
+    </div>
   );
 }
