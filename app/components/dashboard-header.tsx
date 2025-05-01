@@ -43,7 +43,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="flex items-center justify-between py-4 border-b">
+    <header className="flex items-center justify-between py-4">
       <div className="flex items-center gap-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="relative w-8 h-8 bg-primary rounded-lg flex items-center justify-center">

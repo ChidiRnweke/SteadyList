@@ -1,6 +1,5 @@
 
 import { getNoteById } from "../../lib/notes"
-import { DashboardHeader } from "../../components/dashboard-header"
 import { NoteForm } from "../../components/note-form"
 import type { Note } from "../../lib/types"
 import type { Route } from "./+types/route"
@@ -14,8 +13,7 @@ export default function EditNotePage(loaderData: Route.ComponentProps) {
 
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <DashboardHeader />
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold mb-6 text-primary">Edit Note</h1>
         {<NoteForm note={loaderData.loaderData} />}

@@ -9,6 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { DashboardHeader } from "./components/dashboard-header";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -33,7 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-          {children}
+        {children}
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -42,7 +43,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <div className="min-h-screen flex flex-col">
+      <div className="px-4 md:px-8 lg:px-16 border-b">
+        <div className="max-w-[1400px] mx-auto w-full">
+          <DashboardHeader />
+        </div>
+      </div>
+      <main className="flex-1 px-4 md:px-8 lg:px-16 py-8">
+        <div className="max-w-[1400px] mx-auto w-full">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

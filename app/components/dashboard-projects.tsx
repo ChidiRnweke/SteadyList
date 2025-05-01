@@ -7,6 +7,7 @@ import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import type { Project, Task } from "../lib/types"
 import { ArrowRight, Plus } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface DashboardProjectsProps {
   projects: Project[]
@@ -14,6 +15,8 @@ interface DashboardProjectsProps {
 }
 
 export function DashboardProjects({ projects, tasks }: DashboardProjectsProps) {
+  // Display up to 4 projects
+  const displayLimit = 4
 
   const projectsWithCounts = projects.map((project) => {
     const activeTasks = tasks.filter((task) => !task.deleted && task.projectId === project.id)
@@ -23,7 +26,8 @@ export function DashboardProjects({ projects, tasks }: DashboardProjectsProps) {
     }
   })
 
-
+  // Get only the projects we want to display
+  const visibleProjects = projectsWithCounts.slice(0, displayLimit)
 
   return (
     <Card className="col-span-1">
@@ -52,33 +56,43 @@ export function DashboardProjects({ projects, tasks }: DashboardProjectsProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {projectsWithCounts.map((project) => (
-              <Link key={project.id} to={`/projects/${project.id}`}>
-                <div className="p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-primary">{project.name}</h3>
-                    <div className="flex gap-2">
-                      {project.taskCount > 0 && (
-                        <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/30">
-                          {project.taskCount} to do
-                        </Badge>
+            <AnimatePresence>
+              {visibleProjects.map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Link to={`/projects/${project.id}`}>
+                    <div className="p-4 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-medium text-primary">{project.name}</h3>
+                        <div className="flex gap-2">
+                          {project.taskCount > 0 && (
+                            <Badge variant="outline" className="bg-secondary/10 text-secondary border-secondary/30">
+                              {project.taskCount} to do
+                            </Badge>
+                          )}
+                          {project.blockedTaskCount !== undefined && project.blockedTaskCount > 0 && (
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
+                              {project.blockedTaskCount} blocked
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {project.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{project.description}</p>
                       )}
-                      {project.blockedTaskCount !== undefined && project.blockedTaskCount > 0 && (
-                        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-                          {project.blockedTaskCount} blocked
-                        </Badge>
-                      )}
+                      <div className="text-sm text-muted-foreground">
+                        {project.taskCount} {project.taskCount === 1 ? "task" : "tasks"}
+                      </div>
                     </div>
-                  </div>
-                  {project.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{project.description}</p>
-                  )}
-                  <div className="text-sm text-muted-foreground">
-                    {project.taskCount} {project.taskCount === 1 ? "task" : "tasks"}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </CardContent>

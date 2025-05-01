@@ -7,6 +7,7 @@ import { Button } from "./ui/button"
 import type { Project, Task } from "../lib/types"
 import { ArrowRight, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface DashboardTasksProps {
   tasks: Task[]
@@ -19,7 +20,9 @@ const getProjectName = (projectId: string, projects: Project[]) => {
 }
 
 export function DashboardTasks({ tasks, projects }: DashboardTasksProps) {
-
+  // Display up to 5 tasks
+  const displayLimit = 5
+  const visibleTasks = tasks.slice(0, displayLimit)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -70,35 +73,45 @@ export function DashboardTasks({ tasks, projects }: DashboardTasksProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            {tasks.map((task) => (
-              <Link key={task.id} to={`/projects/${task.projectId}`}>
-                <div className="p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-medium">{task.title}</h3>
-                    <Badge variant="outline" className={getStatusColor(task.status)}>
-                      {task.status === "in-progress"
-                        ? "In Progress"
-                        : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                    </Badge>
-                  </div>
+            <AnimatePresence>
+              {visibleTasks.map((task, index) => (
+                <motion.div
+                  key={task.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Link to={`/projects/${task.projectId}`}>
+                    <div className="p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors cursor-pointer">
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-medium">{task.title}</h3>
+                        <Badge variant="outline" className={getStatusColor(task.status)}>
+                          {task.status === "in-progress"
+                            ? "In Progress"
+                            : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                        </Badge>
+                      </div>
 
-                  <p className="text-sm text-muted-foreground mb-2">{getProjectName(task.projectId, projects)}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{getProjectName(task.projectId, projects)}</p>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
-                    </Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                          {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+                        </Badge>
 
-                    {task.dueDate && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                        {task.dueDate && (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDistanceToNow(new Date(task.dueDate), { addSuffix: true })}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </CardContent>

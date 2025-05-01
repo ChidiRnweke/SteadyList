@@ -1,5 +1,4 @@
 import { getTaskById } from "../../lib/tasks"
-import { DashboardHeader } from "../../components/dashboard-header"
 import { TaskForm } from "../../components/task-form"
 import type { Task } from "~/lib/types"
 import type { Route } from "./+types/route"
@@ -16,8 +15,7 @@ export default function EditTaskPage(loaderData: Route.ComponentProps) {
 
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <DashboardHeader />
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-primary mb-2">Edit Task</h1>
         <p className="text-muted-foreground mb-6">Update task details</p>

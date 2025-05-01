@@ -2,7 +2,6 @@ import { redirect } from "react-router"
 import { getProjectById, softDeleteProject } from "../../lib/projects"
 import { getTasksByProject } from "../../lib/tasks"
 import { getNotesByProject } from "../../lib/notes"
-import { DashboardHeader } from "../../components/dashboard-header"
 import { KanbanBoard } from "../../components/kanban-board"
 import { ProjectHeader } from "../../components/project-header"
 import { ProjectNotes } from "../../components/project-notes"
@@ -47,8 +46,7 @@ export default function ProjectPage({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <DashboardHeader />
+    <div className="space-y-8">
       <ProjectHeader project={project} />
 
       <Tabs defaultValue="tasks" className="w-full">

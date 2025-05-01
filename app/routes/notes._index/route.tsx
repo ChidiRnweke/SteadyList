@@ -1,4 +1,3 @@
-import { DashboardHeader } from "../../components/dashboard-header"
 import { NotesList } from "../../components/notes-list"
 import { Button } from "../../components/ui/button"
 import { Plus } from "lucide-react"
@@ -36,8 +35,7 @@ export default function NotesPage({ loaderData }: Route.ComponentProps) {
   const { notes } = loaderData
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <DashboardHeader />
+    <div className="space-y-8">
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-primary">Notes</h1>

@@ -1,6 +1,5 @@
 import { getAllProjects } from "~/lib/projects"
 import { getAllTasks } from "~/lib/tasks"
-import { DashboardHeader } from "../components/dashboard-header"
 import { DashboardMetrics } from "../components/dashboard-metrics"
 import { DashboardTasks } from "../components/dashboard-tasks"
 import { DashboardProjects } from "../components/dashboard-projects"
@@ -17,9 +16,7 @@ export async function loader(): Promise<{ tasks: Task[], projects: Project[] }> 
 export default function Home({ loaderData }: Route.ComponentProps) {
   const { tasks, projects } = loaderData
   return (
-    <div className="container mx-auto py-6 space-y-8">
-      <DashboardHeader />
-
+    <div className="space-y-8">
       <div className="grid grid-cols-1 gap-8">
         <h1 className="text-3xl font-bold text-primary">Dashboard</h1>
 
