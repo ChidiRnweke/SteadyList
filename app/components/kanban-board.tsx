@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { TaskCard } from "./task-card"
 import type { Task } from "../lib/types"
+import { useNavigation } from "react-router"
 
 interface KanbanBoardProps {
   tasks: Task[]
@@ -21,28 +22,28 @@ type Column = {
 
 
 export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
-  const [columns, setColumns] = useState<Column[]>([
-    { id: "todo", title: "To Do", tasks: [], color: "border-secondary bg-secondary/5" },
-    { id: "in-progress", title: "In Progress", tasks: [], color: "border-amber-500 bg-amber-500/5" },
-    { id: "blocked", title: "Blocked", tasks: [], color: "border-destructive bg-destructive/5" },
-    { id: "done", title: "Done", tasks: [], color: "border-green-500 bg-green-500/5" },
-  ])
+  // Define the base column structure
+  const columnDefinitions = [
+    { id: "todo", title: "To Do", color: "border-secondary bg-secondary/5" },
+    { id: "in-progress", title: "In Progress", color: "border-amber-500 bg-amber-500/5" },
+    { id: "blocked", title: "Blocked", color: "border-destructive bg-destructive/5" },
+    { id: "done", title: "Done", color: "border-green-500 bg-green-500/5" },
+  ];
 
-  useEffect(() => {
-    const loadTasks = () => {
-      const activeTasks = tasks.filter((task) => !task.deleted)
+  // Filter active tasks and distribute them into columns
+  const activeTasks = tasks.filter((task) => !task.deleted);
 
-      setColumns(
-        columns.map((column) => ({
-          ...column,
-          tasks: activeTasks.filter((task) => task.status === column.id),
-        })),
-      )
+  const [columns, setColumns] = useState<Column[]>(
+    columnDefinitions.map(column => ({
+      ...column,
+      tasks: [] // Initialize with empty arrays
+    }))
+  );
 
-    }
-
-    loadTasks()
-  }, [tasks])
+  const populatedColumns = columnDefinitions.map(column => ({
+    ...column,
+    tasks: activeTasks.filter(task => task.status === column.id)
+  }));
 
   const onDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result
@@ -54,8 +55,8 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
     // Find source and destination columns
-    const sourceColumn = columns.find((col) => col.id === source.droppableId)
-    const destColumn = columns.find((col) => col.id === destination.droppableId)
+    const sourceColumn = populatedColumns.find((col) => col.id === source.droppableId)
+    const destColumn = populatedColumns.find((col) => col.id === destination.droppableId)
 
     if (!sourceColumn || !destColumn) return
 
@@ -65,7 +66,7 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
       const [movedTask] = newTasks.splice(source.index, 1)
       newTasks.splice(destination.index, 0, movedTask)
 
-      const newColumns = columns.map((col) => (col.id === sourceColumn.id ? { ...col, tasks: newTasks } : col))
+      const newColumns = populatedColumns.map((col) => (col.id === sourceColumn.id ? { ...col, tasks: newTasks } : col))
 
       setColumns(newColumns)
     }
@@ -77,7 +78,7 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
       const destTasks = Array.from(destColumn.tasks)
       destTasks.splice(destination.index, 0, { ...movedTask, status: destination.droppableId as 'todo' | 'in-progress' | 'blocked' | 'done' })
 
-      const newColumns = columns.map((col) => {
+      const newColumns = populatedColumns.map((col) => {
         if (col.id === source.droppableId) {
           return { ...col, tasks: sourceTasks }
         }
@@ -98,7 +99,7 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {columns.map((column) => (
+        {populatedColumns.map((column) => (
           <div key={column.id} className="flex flex-col h-full">
             <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
               <CardHeader className="pb-2">
