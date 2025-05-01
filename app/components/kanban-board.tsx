@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { TaskCard } from "./task-card"
 import type { Task } from "../lib/types"
-import { useNavigation } from "react-router"
+import { useNavigation, useFetcher } from "react-router"
+import { toast } from "sonner"
 
 interface KanbanBoardProps {
   tasks: Task[]
@@ -20,8 +21,83 @@ type Column = {
   color: string
 }
 
+// Define a type for our pending updates
+type PendingUpdate = {
+  taskId: string;
+  newStatus: string;
+  prevStatus: string;
+}
 
-export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
+export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps) {
+  const fetcher = useFetcher();
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+  const [toastId, setToastId] = useState<string | number | null>(null);
+
+  // Store local tasks that include our optimistic updates
+  const [localTasks, setLocalTasks] = useState<Task[]>([]);
+
+  // Use a ref to track pending updates to avoid race conditions
+  const pendingUpdates = useRef<PendingUpdate[]>([]);
+
+  // Initialize local tasks on first render and when props change significantly
+  useEffect(() => {
+    if (localTasks.length === 0 || initialTasks.length !== localTasks.length) {
+      // Apply any pending updates to the new initial tasks
+      const tasksWithPendingUpdates = [...initialTasks];
+
+      pendingUpdates.current.forEach(update => {
+        const taskIndex = tasksWithPendingUpdates.findIndex(t => t.id === update.taskId);
+        if (taskIndex >= 0) {
+          tasksWithPendingUpdates[taskIndex] = {
+            ...tasksWithPendingUpdates[taskIndex],
+            status: update.newStatus as any
+          };
+        }
+      });
+
+      setLocalTasks(tasksWithPendingUpdates);
+    }
+  }, [initialTasks, localTasks.length]);
+
+  // Handle incoming task data without losing optimistic updates
+  useEffect(() => {
+    // Skip initial render
+    if (localTasks.length === 0) return;
+
+    // Create maps for faster lookups
+    const initialTasksMap = new Map(initialTasks.map(task => [task.id, task]));
+    const localTasksMap = new Map(localTasks.map(task => [task.id, task]));
+
+    // Update local tasks while preserving optimistic updates
+    const updatedTasks = localTasks.map(localTask => {
+      const initialTask = initialTasksMap.get(localTask.id);
+
+      // If task is not in the new data, keep it (might be a new task we added)
+      if (!initialTask) return localTask;
+
+      // If this task has a pending update, preserve the status
+      const pendingUpdate = pendingUpdates.current.find(u => u.taskId === localTask.id);
+      if (pendingUpdate) {
+        return {
+          ...initialTask,
+          status: pendingUpdate.newStatus as any
+        };
+      }
+
+      // Otherwise use the server data
+      return initialTask;
+    });
+
+    // Add any new tasks from initialTasks that aren't in localTasks
+    initialTasks.forEach(initialTask => {
+      if (!localTasksMap.has(initialTask.id)) {
+        updatedTasks.push(initialTask);
+      }
+    });
+
+    setLocalTasks(updatedTasks);
+  }, [initialTasks]);
+
   // Define the base column structure
   const columnDefinitions = [
     { id: "todo", title: "To Do", color: "border-secondary bg-secondary/5" },
@@ -30,72 +106,147 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
     { id: "done", title: "Done", color: "border-green-500 bg-green-500/5" },
   ];
 
-  // Filter active tasks and distribute them into columns
-  const activeTasks = tasks.filter((task) => !task.deleted);
+  // Memoize our populated columns for performance
+  const populatedColumns = useMemo(() => {
+    // Only show non-deleted tasks
+    const activeTasks = localTasks.filter(task => !task.deleted);
 
-  const [columns, setColumns] = useState<Column[]>(
-    columnDefinitions.map(column => ({
+    // Group tasks by status
+    return columnDefinitions.map(column => ({
       ...column,
-      tasks: [] // Initialize with empty arrays
-    }))
-  );
+      tasks: activeTasks.filter(task => task.status === column.id)
+    }));
+  }, [localTasks]);
 
-  const populatedColumns = columnDefinitions.map(column => ({
-    ...column,
-    tasks: activeTasks.filter(task => task.status === column.id)
-  }));
+  // Effect to handle server responses
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && updatingTaskId) {
+      if (toastId) {
+        toast.dismiss(toastId);
+      }
 
-  const onDragEnd = async (result: DropResult) => {
-    const { source, destination, draggableId } = result
+      // Find the pending update for this task
+      const pendingUpdateIndex = pendingUpdates.current.findIndex(u => u.taskId === updatingTaskId);
 
-    // Dropped outside the list
-    if (!destination) return
+      if (fetcher.data.success) {
+        toast.success(fetcher.data.message || "Task status updated");
 
-    // Dropped in the same position
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return
-
-    // Find source and destination columns
-    const sourceColumn = populatedColumns.find((col) => col.id === source.droppableId)
-    const destColumn = populatedColumns.find((col) => col.id === destination.droppableId)
-
-    if (!sourceColumn || !destColumn) return
-
-    // Moving within the same column
-    if (source.droppableId === destination.droppableId) {
-      const newTasks = Array.from(sourceColumn.tasks)
-      const [movedTask] = newTasks.splice(source.index, 1)
-      newTasks.splice(destination.index, 0, movedTask)
-
-      const newColumns = populatedColumns.map((col) => (col.id === sourceColumn.id ? { ...col, tasks: newTasks } : col))
-
-      setColumns(newColumns)
-    }
-    // Moving to another column
-    else {
-      const sourceTasks = Array.from(sourceColumn.tasks)
-      const [movedTask] = sourceTasks.splice(source.index, 1)
-
-      const destTasks = Array.from(destColumn.tasks)
-      destTasks.splice(destination.index, 0, { ...movedTask, status: destination.droppableId as 'todo' | 'in-progress' | 'blocked' | 'done' })
-
-      const newColumns = populatedColumns.map((col) => {
-        if (col.id === source.droppableId) {
-          return { ...col, tasks: sourceTasks }
+        // Success - remove the pending update
+        if (pendingUpdateIndex >= 0) {
+          pendingUpdates.current.splice(pendingUpdateIndex, 1);
         }
-        if (col.id === destination.droppableId) {
-          return { ...col, tasks: destTasks }
+      } else {
+        toast.error(fetcher.data.message || "Failed to update task status");
+
+        // Failure - revert the task status
+        if (pendingUpdateIndex >= 0) {
+          const revertTo = pendingUpdates.current[pendingUpdateIndex].prevStatus;
+
+          // Update the local task state to revert the status
+          setLocalTasks(prev =>
+            prev.map(task =>
+              task.id === updatingTaskId
+                ? { ...task, status: revertTo as any }
+                : task
+            )
+          );
+
+          // Remove the pending update
+          pendingUpdates.current.splice(pendingUpdateIndex, 1);
         }
-        return col
-      })
+      }
 
-      setColumns(newColumns)
-
-      // Update task status in the database
-      console.log(newColumns)
+      setUpdatingTaskId(null);
+      setToastId(null);
     }
+  }, [fetcher.state, fetcher.data, updatingTaskId, toastId]);
+
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination, draggableId } = result;
+
+    // Dropped outside the list or same position
+    if (!destination ||
+      (source.droppableId === destination.droppableId &&
+        source.index === destination.index)) {
+      return;
+    }
+
+    // Find the task being moved
+    const taskBeingMoved = localTasks.find(task => task.id === draggableId);
+    if (!taskBeingMoved) return;
+
+    const newStatus = destination.droppableId as Task['status'];
+    const prevStatus = taskBeingMoved.status;
+
+    // Skip if status didn't change (shouldn't happen, but just in case)
+    if (newStatus === prevStatus) return;
+
+    // Apply optimistic update
+    setLocalTasks(prev =>
+      prev.map(task =>
+        task.id === draggableId ? { ...task, status: newStatus } : task
+      )
+    );
+
+    // Add to pending updates
+    pendingUpdates.current.push({
+      taskId: draggableId,
+      newStatus,
+      prevStatus
+    });
+
+    // Update on server
+    updateTaskStatus(draggableId, newStatus);
+  };
+
+  // Function to update task status on the server
+  const updateTaskStatus = (taskId: string, newStatus: string) => {
+    setUpdatingTaskId(taskId);
+
+    // Show toast
+    const id = toast.loading(`Updating task status to ${newStatus.replace('-', ' ')}...`);
+    setToastId(id);
+
+    // Send to server
+    fetcher.submit(
+      {
+        taskId,
+        status: newStatus,
+        _action: "updateTaskStatus"
+      },
+      {
+        method: "POST",
+        action: `/projects/${projectId}/tasks/${taskId}`
+      }
+    );
+  };
+
+  // If we have no tasks yet, show a loading state or empty state
+  if (localTasks.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {columnDefinitions.map((column) => (
+          <div key={column.id} className="flex flex-col h-full">
+            <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-medium">{column.title}</CardTitle>
+                  <Badge variant="outline">0</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-grow overflow-hidden pt-0">
+                <div className="min-h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                  {initialTasks.length === 0 ? "No tasks yet" : "Loading..."}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+      </div>
+    );
   }
 
-
+  // Main render with the kanban board
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -117,9 +268,25 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
                       className="space-y-3 min-h-[200px] overflow-y-auto max-h-[calc(100vh-300px)] p-1"
                     >
                       {column.tasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided) => (
-                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                        <Draggable
+                          key={task.id}
+                          draggableId={task.id}
+                          index={index}
+                          isDragDisabled={updatingTaskId === task.id}
+                        >
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`
+                                transition-all duration-200
+                                ${updatingTaskId === task.id ? "opacity-60" : ""}
+                                ${snapshot.isDragging ? "shadow-lg scale-105 z-10" : ""}
+                              `}
+                              data-task-id={task.id}
+                              data-status={task.status}
+                            >
                               <TaskCard task={task} projectId={projectId} />
                             </div>
                           )}
@@ -135,5 +302,5 @@ export function KanbanBoard({ tasks, projectId }: KanbanBoardProps) {
         ))}
       </div>
     </DragDropContext>
-  )
+  );
 }
