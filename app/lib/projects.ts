@@ -190,3 +190,57 @@ export async function softDeleteProject(id: string): Promise<boolean> {
 
   return true
 }
+
+// Restore a soft-deleted project
+export async function restoreProject(id: string): Promise<boolean> {
+  const project = await prisma.project.findUnique({
+    where: { id }
+  })
+
+  if (!project) {
+    return false
+  }
+
+  await prisma.project.update({
+    where: { id },
+    data: { deleted: false }
+  })
+
+  // Also restore all tasks that were deleted with this project
+  await prisma.task.updateMany({
+    where: { 
+      projectId: id,
+      deleted: true 
+    },
+    data: { deleted: false }
+  })
+
+  return true
+}
+
+// Get all deleted projects
+export async function getDeletedProjects(): Promise<Project[]> {
+  const projects = await prisma.project.findMany({
+    where: { deleted: true },
+    orderBy: { updatedAt: 'desc' },
+    include: {
+      _count: {
+        select: {
+          tasks: {
+            where: {
+              deleted: true
+            }
+          }
+        }
+      }
+    }
+  })
+
+  return projects.map(project => ({
+    ...project,
+    description: project.description || undefined,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+    taskCount: project._count.tasks
+  }))
+}

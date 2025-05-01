@@ -9,13 +9,33 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
 import { mockSignOut, useUser } from "../lib/auth"
 import { NotificationIndicator } from "../components/notification-indicator"
+import { TrashIndicator } from "../components/trash-indicator"
 import { MainNav } from "../components/main-nav"
 import { MobileNav } from "../components/mobile-nav"
+import { useFetcher } from "react-router"
+import { useEffect, useState } from "react"
 
 export function DashboardHeader() {
   const navigate = useNavigate()
   const location = useLocation()
   const user = useUser()
+  const fetcher = useFetcher()
+  const [deletedItems, setDeletedItems] = useState({ deletedProjects: [], deletedTasks: [] })
+
+  useEffect(() => {
+    // Fetch trash data when component mounts
+    fetcher.load("/trash")
+  }, [])
+
+  // Update trash data when it changes
+  useEffect(() => {
+    if (fetcher.data) {
+      setDeletedItems({
+        deletedProjects: fetcher.data.deletedProjects || [],
+        deletedTasks: fetcher.data.deletedTasks || []
+      })
+    }
+  }, [fetcher.data])
 
   const handleSignOut = async () => {
     await mockSignOut()
@@ -39,6 +59,11 @@ export function DashboardHeader() {
 
       <div className="flex items-center gap-4">
         <NotificationIndicator />
+
+        <TrashIndicator
+          deletedTasks={deletedItems.deletedTasks}
+          deletedProjects={deletedItems.deletedProjects}
+        />
 
         <Sheet>
           <SheetTrigger asChild className="md:hidden">
