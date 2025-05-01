@@ -1,25 +1,49 @@
-
-import { getNoteById } from "../../lib/notes"
+import { getNoteById, updateNote } from "../../lib/notes"
+import { getAllProjects } from "../../lib/projects"
 import { NoteForm } from "../../components/note-form"
-import type { Note } from "../../lib/types"
+import { redirect } from "react-router"
 import type { Route } from "./+types/route"
 
-export async function loader({ params }: Route.LoaderArgs): Promise<Note> {
+export async function loader({ params }: Route.LoaderArgs) {
   const noteData = await getNoteById(params.id)
-  return noteData!
+  const projects = await getAllProjects()
+
+  if (!noteData) {
+    throw new Error("Note not found")
+  }
+
+  return { note: noteData, projects }
 }
 
-export default function EditNotePage(loaderData: Route.ComponentProps) {
+export async function action({ params, request }: Route.ActionArgs) {
+  const formData = await request.formData()
 
+  const title = formData.get("title") as string
+  const content = formData.get("content") as string
+  const projectId = formData.get("projectId") as string
+  const shareable = formData.get("shareable") === "true"
+
+  // Validate required fields
+  if (!title) {
+    return { error: "Title is required" }
+  }
+
+  // Update note
+  await updateNote(params.id, {
+    title,
+    content: content || "",
+    projectId: projectId === "none" ? "" : projectId,
+    shareable
+  })
+
+  return redirect(`/notes/${params.id}`)
+}
+
+export default function EditNotePage({ loaderData }: Route.ComponentProps) {
+  const { note, projects } = loaderData
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold mb-6 text-primary">Edit Note</h1>
-        {<NoteForm note={loaderData.loaderData} />}
-      </div>
-    </div>
-
+    <NoteForm note={note} projects={projects} />
   )
 }
 

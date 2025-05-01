@@ -874,6 +874,7 @@ export const NoteScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deleted: 'deleted',
+  shareable: 'shareable',
   userId: 'userId',
   projectId: 'projectId'
 } as const

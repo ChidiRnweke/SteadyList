@@ -19,6 +19,7 @@ import { cn } from "../lib/utils"
 import { Switch } from "./ui/switch"
 import { useFetcher } from "react-router"
 import { Form as ReactRouterForm } from "react-router"
+import { useEffect } from "react"
 
 
 
@@ -33,9 +34,10 @@ const formSchema = z.object({
 
 interface TaskFormProps {
   projectId: string
+  initialStatus?: "todo" | "in-progress" | "blocked" | "done"
 }
 
-export function TaskForm({ projectId }: TaskFormProps) {
+export function TaskForm({ projectId, initialStatus }: TaskFormProps) {
   const fetcher = useFetcher()
   let busy = fetcher.state !== "idle";
 
@@ -46,10 +48,17 @@ export function TaskForm({ projectId }: TaskFormProps) {
       description: "",
       dueDate: undefined,
       priority: "medium" as "low" | "medium" | "high",
-      status: "todo" as "todo" | "in-progress" | "blocked" | "done",
+      status: initialStatus || "todo" as "todo" | "in-progress" | "blocked" | "done",
       reminder: false,
     },
   })
+
+  useEffect(() => {
+    if (initialStatus) {
+      form.setValue("status", initialStatus);
+    }
+  }, [initialStatus, form]);
+
   const priorityStr = form.watch("priority");
   const statusStr = form.watch("status");
   const reminderStr = form.watch("reminder") ? "true" : "false";
@@ -181,10 +190,18 @@ export function TaskForm({ projectId }: TaskFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="todo">To Do</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="blocked">Blocked</SelectItem>
-                      <SelectItem value="done">Done</SelectItem>
+                      <SelectItem value="todo" className={initialStatus === "todo" ? "bg-secondary/10 font-medium" : ""}>
+                        To Do {initialStatus === "todo" && "(Selected from board)"}
+                      </SelectItem>
+                      <SelectItem value="in-progress" className={initialStatus === "in-progress" ? "bg-amber-500/10 font-medium" : ""}>
+                        In Progress {initialStatus === "in-progress" && "(Selected from board)"}
+                      </SelectItem>
+                      <SelectItem value="blocked" className={initialStatus === "blocked" ? "bg-destructive/10 font-medium" : ""}>
+                        Blocked {initialStatus === "blocked" && "(Selected from board)"}
+                      </SelectItem>
+                      <SelectItem value="done" className={initialStatus === "done" ? "bg-green-500/10 font-medium" : ""}>
+                        Done {initialStatus === "done" && "(Selected from board)"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>Current progress of the task</FormDescription>
@@ -235,7 +252,9 @@ export function TaskForm({ projectId }: TaskFormProps) {
               </Link>
             </Button>
             <Button type="submit" disabled={busy} className="bg-primary hover:bg-primary/90">
-              {busy ? "Saving..." : "Create Task"}
+              {busy ? "Saving..." : initialStatus
+                ? `Add to ${initialStatus === 'in-progress' ? 'In Progress' : initialStatus.charAt(0).toUpperCase() + initialStatus.slice(1)}`
+                : "Create Task"}
             </Button>
           </div>
         </ReactRouterForm>

@@ -81,18 +81,21 @@ export interface Note {
   updatedAt: string
   userId: string
   deleted: boolean
+  shareable: boolean
 }
 
 export interface CreateNoteInput {
   title: string
   content: string
   projectId: string
+  shareable?: boolean
 }
 
 export interface UpdateNoteInput {
-  title?: string
-  content?: string
+  title: string
+  content: string
   projectId?: string
+  shareable?: boolean
 }
 
 // Notification Types

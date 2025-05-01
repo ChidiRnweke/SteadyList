@@ -55,6 +55,7 @@ export async function createNote(data: CreateNoteInput): Promise<Note> {
       projectId: data.projectId,
       userId: "user-1", // Mock user ID, will be replaced with actual auth
       deleted: false,
+      shareable: data.shareable || false,
     }
   })
 
@@ -81,6 +82,7 @@ export async function updateNote(id: string, data: UpdateNoteInput): Promise<Not
       title: data.title,
       content: data.content,
       projectId: data.projectId,
+      shareable: data.shareable !== undefined ? data.shareable : note.shareable,
     }
   })
 
