@@ -67,12 +67,14 @@ export function ProjectList({ projects, tasks }: ProjectListProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <Link to={`/projects/${project.id}/edit`}>
-                    <DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+
+                    <Link to={`/projects/${project.id}/edit`}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
-                    </DropdownMenuItem>
-                  </Link>
+                    </Link>
+                  </DropdownMenuItem>
+
                   <Link to={`/projects/${project.id}/ai-tasks`}>
                     <DropdownMenuItem>
                       <Sparkles className="mr-2 h-4 w-4" />
