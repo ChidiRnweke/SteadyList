@@ -1,46 +1,53 @@
-"use client"
+"use client";
 
-import { Link } from "react-router"
-import { useNavigate, useLocation } from "react-router"
-import { LogOut, Menu } from "lucide-react"
-import { Button } from "./ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
-import { mockSignOut, useUser } from "../lib/auth"
-import { NotificationIndicator } from "../components/notification-indicator"
-import { TrashIndicator } from "../components/trash-indicator"
-import { MainNav } from "../components/main-nav"
-import { MobileNav } from "../components/mobile-nav"
-import { useFetcher } from "react-router"
-import { useEffect, useState } from "react"
+import { Link } from "react-router";
+import { useNavigate, useLocation } from "react-router";
+import { LogOut, Menu } from "lucide-react";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { mockSignOut, useUser } from "../lib/auth";
+import { NotificationIndicator } from "../components/notification-indicator";
+import { TrashIndicator } from "../components/trash-indicator";
+import { MainNav } from "../components/main-nav";
+import { MobileNav } from "../components/mobile-nav";
+import { useFetcher } from "react-router";
+import { useEffect, useState } from "react";
 
 export function DashboardHeader() {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const user = useUser()
-  const fetcher = useFetcher()
-  const [deletedItems, setDeletedItems] = useState({ deletedProjects: [], deletedTasks: [] })
+  const navigate = useNavigate();
+  const location = useLocation();
+  const user = useUser();
+  const fetcher = useFetcher();
+  const [deletedItems, setDeletedItems] = useState({
+    deletedProjects: [],
+    deletedTasks: [],
+  });
 
   useEffect(() => {
-    // Fetch trash data when component mounts
-    fetcher.load("/trash")
-  }, [])
+    fetcher.load("/trash");
+  }, []);
 
   // Update trash data when it changes
   useEffect(() => {
     if (fetcher.data) {
       setDeletedItems({
         deletedProjects: fetcher.data.deletedProjects || [],
-        deletedTasks: fetcher.data.deletedTasks || []
-      })
+        deletedTasks: fetcher.data.deletedTasks || [],
+      });
     }
-  }, [fetcher.data])
+  }, [fetcher.data]);
 
   const handleSignOut = async () => {
-    await mockSignOut()
-    navigate("/login")
-  }
+    await mockSignOut();
+    navigate("/login");
+  };
 
   return (
     <header className="flex items-center justify-between py-4">
@@ -49,7 +56,9 @@ export function DashboardHeader() {
           <div className="relative w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-white text-sm font-bold">T</span>
           </div>
-          <span className="text-xl font-bold text-primary hidden md:inline-block">SteadyList</span>
+          <span className="text-xl font-bold text-primary hidden md:inline-block">
+            SteadyList
+          </span>
         </Link>
 
         <div className="hidden md:flex">
@@ -83,13 +92,20 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar>
-                <AvatarImage src={user?.image || "/placeholder.svg?height=40&width=40"} alt={user?.name || "User"} />
-                <AvatarFallback className="bg-primary/10 text-primary">{user?.name?.charAt(0) || "U"}</AvatarFallback>
+                <AvatarImage
+                  src={user?.image || "/placeholder.svg?height=40&width=40"}
+                  alt={user?.name || "User"}
+                />
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {user?.name?.charAt(0) || "U"}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="font-medium">{user?.name || "User"}</DropdownMenuItem>
+            <DropdownMenuItem className="font-medium">
+              {user?.name || "User"}
+            </DropdownMenuItem>
             <DropdownMenuItem className="text-muted-foreground text-sm">
               {user?.email || "user@example.com"}
             </DropdownMenuItem>
@@ -101,5 +117,5 @@ export function DashboardHeader() {
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

@@ -1,17 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useMemo } from "react"
-import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd"
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Badge } from "./ui/badge"
-import { TaskCard } from "./task-card"
-import type { Task } from "../lib/types"
-import { useNavigation, useFetcher } from "react-router"
-import { toast } from "sonner"
-import { Search, Filter, Plus, ArrowUpDown, X } from "lucide-react"
-import { Input } from "./ui/input"
-import { Button } from "./ui/button"
-import { Link } from "react-router"
+import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  type DropResult,
+} from "@hello-pangea/dnd";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { TaskCard } from "./task-card";
+import type { Task } from "../lib/types";
+import { useFetcher } from "react-router";
+import { toast } from "sonner";
+import { Search, Filter, Plus, ArrowUpDown, X } from "lucide-react";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { Link } from "react-router";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,19 +24,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
-  DropdownMenuItem
-} from "./ui/dropdown-menu"
+} from "./ui/dropdown-menu";
 
 interface KanbanBoardProps {
-  tasks: Task[]
-  projectId: string
-}
-
-type Column = {
-  id: string
-  title: string
-  tasks: Task[]
-  color: string
+  tasks: Task[];
+  projectId: string;
 }
 
 // Define a type for our pending updates
@@ -39,13 +36,16 @@ type PendingUpdate = {
   taskId: string;
   newStatus: string;
   prevStatus: string;
-}
+};
 
 // Define filter options
-type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
-type SortOption = 'newest' | 'oldest' | 'priority' | 'alphabetical';
+type PriorityFilter = "all" | "high" | "medium" | "low";
+type SortOption = "newest" | "oldest" | "priority" | "alphabetical";
 
-export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps) {
+export function KanbanBoard({
+  tasks: initialTasks,
+  projectId,
+}: KanbanBoardProps) {
   const fetcher = useFetcher();
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
   const [toastId, setToastId] = useState<string | number | null>(null);
@@ -54,9 +54,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
   const [localTasks, setLocalTasks] = useState<Task[]>([]);
 
   // Search and filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
-  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
 
   // Use a ref to track pending updates to avoid race conditions
   const pendingUpdates = useRef<PendingUpdate[]>([]);
@@ -67,12 +67,14 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
       // Apply any pending updates to the new initial tasks
       const tasksWithPendingUpdates = [...initialTasks];
 
-      pendingUpdates.current.forEach(update => {
-        const taskIndex = tasksWithPendingUpdates.findIndex(t => t.id === update.taskId);
+      pendingUpdates.current.forEach((update) => {
+        const taskIndex = tasksWithPendingUpdates.findIndex(
+          (t) => t.id === update.taskId
+        );
         if (taskIndex >= 0) {
           tasksWithPendingUpdates[taskIndex] = {
             ...tasksWithPendingUpdates[taskIndex],
-            status: update.newStatus as any
+            status: update.newStatus as any,
           };
         }
       });
@@ -87,22 +89,26 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     if (localTasks.length === 0) return;
 
     // Create maps for faster lookups
-    const initialTasksMap = new Map(initialTasks.map(task => [task.id, task]));
-    const localTasksMap = new Map(localTasks.map(task => [task.id, task]));
+    const initialTasksMap = new Map(
+      initialTasks.map((task) => [task.id, task])
+    );
+    const localTasksMap = new Map(localTasks.map((task) => [task.id, task]));
 
     // Update local tasks while preserving optimistic updates
-    const updatedTasks = localTasks.map(localTask => {
+    const updatedTasks = localTasks.map((localTask) => {
       const initialTask = initialTasksMap.get(localTask.id);
 
       // If task is not in the new data, keep it (might be a new task we added)
       if (!initialTask) return localTask;
 
       // If this task has a pending update, preserve the status
-      const pendingUpdate = pendingUpdates.current.find(u => u.taskId === localTask.id);
+      const pendingUpdate = pendingUpdates.current.find(
+        (u) => u.taskId === localTask.id
+      );
       if (pendingUpdate) {
         return {
           ...initialTask,
-          status: pendingUpdate.newStatus as any
+          status: pendingUpdate.newStatus as any,
         };
       }
 
@@ -111,7 +117,7 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     });
 
     // Add any new tasks from initialTasks that aren't in localTasks
-    initialTasks.forEach(initialTask => {
+    initialTasks.forEach((initialTask) => {
       if (!localTasksMap.has(initialTask.id)) {
         updatedTasks.push(initialTask);
       }
@@ -120,45 +126,53 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     setLocalTasks(updatedTasks);
   }, [initialTasks]);
 
-  // Define the base column structure
   const columnDefinitions = [
     { id: "todo", title: "To Do", color: "border-secondary bg-secondary/5" },
-    { id: "in-progress", title: "In Progress", color: "border-amber-500 bg-amber-500/5" },
-    { id: "blocked", title: "Blocked", color: "border-destructive bg-destructive/5" },
+    {
+      id: "in-progress",
+      title: "In Progress",
+      color: "border-amber-500 bg-amber-500/5",
+    },
+    {
+      id: "blocked",
+      title: "Blocked",
+      color: "border-destructive bg-destructive/5",
+    },
     { id: "done", title: "Done", color: "border-green-500 bg-green-500/5" },
   ];
 
-  // Filter and sort tasks
   const filteredAndSortedTasks = useMemo(() => {
-    // First filter out deleted tasks
-    let result = localTasks.filter(task => !task.deleted);
+    let result = localTasks.filter((task) => !task.deleted);
 
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(task =>
-        task.title.toLowerCase().includes(query) ||
-        (task.description && task.description.toLowerCase().includes(query))
+      result = result.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          (task.description && task.description.toLowerCase().includes(query))
       );
     }
 
-    // Apply priority filter
-    if (priorityFilter !== 'all') {
-      result = result.filter(task => task.priority === priorityFilter);
+    if (priorityFilter !== "all") {
+      result = result.filter((task) => task.priority === priorityFilter);
     }
 
     // Apply sorting
     return result.sort((a, b) => {
       switch (sortOption) {
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'priority': {
+        case "newest":
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        case "oldest":
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        case "priority": {
           const priorityOrder = { high: 0, medium: 1, low: 2 };
           return priorityOrder[a.priority] - priorityOrder[b.priority];
         }
-        case 'alphabetical':
+        case "alphabetical":
           return a.title.localeCompare(b.title);
         default:
           return 0;
@@ -168,9 +182,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
 
   // Populate columns with filtered tasks
   const populatedColumns = useMemo(() => {
-    return columnDefinitions.map(column => ({
+    return columnDefinitions.map((column) => ({
       ...column,
-      tasks: filteredAndSortedTasks.filter(task => task.status === column.id)
+      tasks: filteredAndSortedTasks.filter((task) => task.status === column.id),
     }));
   }, [filteredAndSortedTasks]);
 
@@ -187,7 +201,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
       }
 
       // Find the pending update for this task
-      const pendingUpdateIndex = pendingUpdates.current.findIndex(u => u.taskId === updatingTaskId);
+      const pendingUpdateIndex = pendingUpdates.current.findIndex(
+        (u) => u.taskId === updatingTaskId
+      );
 
       if (fetcher.data.success) {
         toast.success(fetcher.data.message || "Task status updated");
@@ -201,11 +217,12 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
 
         // Failure - revert the task status
         if (pendingUpdateIndex >= 0) {
-          const revertTo = pendingUpdates.current[pendingUpdateIndex].prevStatus;
+          const revertTo =
+            pendingUpdates.current[pendingUpdateIndex].prevStatus;
 
           // Update the local task state to revert the status
-          setLocalTasks(prev =>
-            prev.map(task =>
+          setLocalTasks((prev) =>
+            prev.map((task) =>
               task.id === updatingTaskId
                 ? { ...task, status: revertTo as any }
                 : task
@@ -226,25 +243,27 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     const { source, destination, draggableId } = result;
 
     // Dropped outside the list or same position
-    if (!destination ||
+    if (
+      !destination ||
       (source.droppableId === destination.droppableId &&
-        source.index === destination.index)) {
+        source.index === destination.index)
+    ) {
       return;
     }
 
     // Find the task being moved
-    const taskBeingMoved = localTasks.find(task => task.id === draggableId);
+    const taskBeingMoved = localTasks.find((task) => task.id === draggableId);
     if (!taskBeingMoved) return;
 
-    const newStatus = destination.droppableId as Task['status'];
+    const newStatus = destination.droppableId as Task["status"];
     const prevStatus = taskBeingMoved.status;
 
     // Skip if status didn't change (shouldn't happen, but just in case)
     if (newStatus === prevStatus) return;
 
     // Apply optimistic update
-    setLocalTasks(prev =>
-      prev.map(task =>
+    setLocalTasks((prev) =>
+      prev.map((task) =>
         task.id === draggableId ? { ...task, status: newStatus } : task
       )
     );
@@ -253,7 +272,7 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     pendingUpdates.current.push({
       taskId: draggableId,
       newStatus,
-      prevStatus
+      prevStatus,
     });
 
     // Update on server
@@ -265,7 +284,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
     setUpdatingTaskId(taskId);
 
     // Show toast
-    const id = toast.loading(`Updating task status to ${newStatus.replace('-', ' ')}...`);
+    const id = toast.loading(
+      `Updating task status to ${newStatus.replace("-", " ")}...`
+    );
     setToastId(id);
 
     // Send to server
@@ -273,20 +294,20 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
       {
         taskId,
         status: newStatus,
-        _action: "updateTaskStatus"
+        _action: "updateTaskStatus",
       },
       {
         method: "POST",
-        action: `/projects/${projectId}/tasks/${taskId}`
+        action: `/projects/${projectId}/tasks/${taskId}`,
       }
     );
   };
 
   // Clear all filters
   const clearFilters = () => {
-    setSearchQuery('');
-    setPriorityFilter('all');
-    setSortOption('newest');
+    setSearchQuery("");
+    setPriorityFilter("all");
+    setSortOption("newest");
   };
 
   // Handle search input
@@ -303,7 +324,9 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
             <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-medium">{column.title}</CardTitle>
+                  <CardTitle className="text-lg font-medium">
+                    {column.title}
+                  </CardTitle>
                   <Badge variant="outline">0</Badge>
                 </div>
               </CardHeader>
@@ -338,7 +361,7 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
               variant="ghost"
               size="sm"
               className="absolute right-0.5 top-0.5 h-7 w-7 rounded-full p-0"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchQuery("")}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Clear search</span>
@@ -349,7 +372,11 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
                 <Filter className="h-3.5 w-3.5" />
                 <span>Priority</span>
               </Button>
@@ -358,26 +385,26 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
               <DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
-                checked={priorityFilter === 'all'}
-                onCheckedChange={() => setPriorityFilter('all')}
+                checked={priorityFilter === "all"}
+                onCheckedChange={() => setPriorityFilter("all")}
               >
                 All Priorities
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={priorityFilter === 'high'}
-                onCheckedChange={() => setPriorityFilter('high')}
+                checked={priorityFilter === "high"}
+                onCheckedChange={() => setPriorityFilter("high")}
               >
                 High
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={priorityFilter === 'medium'}
-                onCheckedChange={() => setPriorityFilter('medium')}
+                checked={priorityFilter === "medium"}
+                onCheckedChange={() => setPriorityFilter("medium")}
               >
                 Medium
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={priorityFilter === 'low'}
-                onCheckedChange={() => setPriorityFilter('low')}
+                checked={priorityFilter === "low"}
+                onCheckedChange={() => setPriorityFilter("low")}
               >
                 Low
               </DropdownMenuCheckboxItem>
@@ -386,7 +413,11 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+              >
                 <ArrowUpDown className="h-3.5 w-3.5" />
                 <span>Sort</span>
               </Button>
@@ -395,33 +426,35 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
               <DropdownMenuLabel>Sort by</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuCheckboxItem
-                checked={sortOption === 'newest'}
-                onCheckedChange={() => setSortOption('newest')}
+                checked={sortOption === "newest"}
+                onCheckedChange={() => setSortOption("newest")}
               >
                 Newest First
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={sortOption === 'oldest'}
-                onCheckedChange={() => setSortOption('oldest')}
+                checked={sortOption === "oldest"}
+                onCheckedChange={() => setSortOption("oldest")}
               >
                 Oldest First
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={sortOption === 'priority'}
-                onCheckedChange={() => setSortOption('priority')}
+                checked={sortOption === "priority"}
+                onCheckedChange={() => setSortOption("priority")}
               >
                 Priority
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
-                checked={sortOption === 'alphabetical'}
-                onCheckedChange={() => setSortOption('alphabetical')}
+                checked={sortOption === "alphabetical"}
+                onCheckedChange={() => setSortOption("alphabetical")}
               >
                 Alphabetical
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {(searchQuery || priorityFilter !== 'all' || sortOption !== 'newest') && (
+          {(searchQuery ||
+            priorityFilter !== "all" ||
+            sortOption !== "newest") && (
             <Button
               variant="ghost"
               size="sm"
@@ -441,15 +474,24 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
         </div>
       </div>
 
-      {/* Filtered results info */}
-      {(searchQuery || priorityFilter !== 'all') && (
+      {(searchQuery || priorityFilter !== "all") && (
         <div className="text-sm text-muted-foreground mb-2">
-          Showing {totalFilteredTasks} of {localTasks.filter(t => !t.deleted).length} tasks
-          {searchQuery && <span> matching "<strong>{searchQuery}</strong>"</span>}
-          {priorityFilter !== 'all' && (
-            <span> with <Badge variant="outline" className="ml-1 font-normal text-xs">
-              {priorityFilter} priority
-            </Badge></span>
+          Showing {totalFilteredTasks} of{" "}
+          {localTasks.filter((t) => !t.deleted).length} tasks
+          {searchQuery && (
+            <span>
+              {" "}
+              matching "<strong>{searchQuery}</strong>"
+            </span>
+          )}
+          {priorityFilter !== "all" && (
+            <span>
+              {" "}
+              with{" "}
+              <Badge variant="outline" className="ml-1 font-normal text-xs">
+                {priorityFilter} priority
+              </Badge>
+            </span>
           )}
         </div>
       )}
@@ -459,10 +501,14 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {populatedColumns.map((column) => (
             <div key={column.id} className="flex flex-col h-full">
-              <Card className={`h-full flex flex-col border-t-4 ${column.color}`}>
+              <Card
+                className={`h-full flex flex-col border-t-4 ${column.color}`}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-medium">{column.title}</CardTitle>
+                    <CardTitle className="text-lg font-medium">
+                      {column.title}
+                    </CardTitle>
                     <Badge variant="outline">{column.tasks.length}</Badge>
                   </div>
                 </CardHeader>
@@ -489,8 +535,16 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
                                   {...provided.dragHandleProps}
                                   className={`
                                     transition-all duration-200
-                                    ${updatingTaskId === task.id ? "opacity-60" : ""}
-                                    ${snapshot.isDragging ? "shadow-lg scale-105 z-10" : ""}
+                                    ${
+                                      updatingTaskId === task.id
+                                        ? "opacity-60"
+                                        : ""
+                                    }
+                                    ${
+                                      snapshot.isDragging
+                                        ? "shadow-lg scale-105 z-10"
+                                        : ""
+                                    }
                                   `}
                                   data-task-id={task.id}
                                   data-status={task.status}
@@ -502,13 +556,19 @@ export function KanbanBoard({ tasks: initialTasks, projectId }: KanbanBoardProps
                           ))
                         ) : (
                           <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground text-sm border border-dashed rounded-md">
-                            {searchQuery || priorityFilter !== 'all' ? (
+                            {searchQuery || priorityFilter !== "all" ? (
                               <p>No matching tasks</p>
                             ) : (
                               <>
                                 <p className="mb-2">No tasks in this column</p>
-                                <Link to={`/projects/${projectId}/tasks/new?status=${column.id}`}>
-                                  <Button variant="ghost" size="sm" className="text-xs">
+                                <Link
+                                  to={`/projects/${projectId}/tasks/new?status=${column.id}`}
+                                >
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs"
+                                  >
                                     <Plus className="h-3.5 w-3.5 mr-1" />
                                     Add task
                                   </Button>

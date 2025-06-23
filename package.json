@@ -45,6 +45,7 @@
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "@tailwindcss/typography": "^0.5.16",
+    "@tiptap/extension-character-count": "^2.11.9",
     "@tiptap/extension-image": "^2.11.9",
     "@tiptap/extension-link": "^2.11.9",
     "@tiptap/extension-placeholder": "^2.11.9",
