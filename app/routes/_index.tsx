@@ -16,6 +16,8 @@ import {
   Calendar,
   Target,
 } from "lucide-react";
+import { AuthProvider } from "~/components/auth/auth-context";
+import { AuthGuard } from "~/components/auth/auth-guard";
 
 // Custom FolderKanban icon component
 function FolderKanban(props: React.SVGProps<SVGSVGElement>) {
@@ -110,6 +112,8 @@ export default function Home() {
   ];
 
   return (
+    // <AuthProvider>
+    //   <AuthGuard>
     <div className="space-y-12">
       {/* Hero Section */}
       <div className="text-center space-y-6 py-12">
@@ -244,5 +248,7 @@ export default function Home() {
         </div>
       </div>
     </div>
+    //   </AuthGuard>
+    // </AuthProvider>
   );
 }
