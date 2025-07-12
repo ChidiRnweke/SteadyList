@@ -37,61 +37,24 @@
 	let updatingTaskId = $state<string | null>(null);
 	let toastId = $state<string | number | null>(null);
 
-	let localTasks = $state<Task[]>([]);
 	let searchQuery = $state('');
 	let priorityFilter = $state<PriorityFilter>('all');
 	let sortOption = $state<SortOption>('newest');
 
-	let pendingUpdates: PendingUpdate[] = [];
+	let pendingUpdates = $state<PendingUpdate[]>([]);
 
-	$effect(() => {
-		if (localTasks.length === 0 || initialTasks.length !== localTasks.length) {
-			// Apply any pending updates to the new initial tasks
-			const tasksWithPendingUpdates = [...initialTasks];
-
-			pendingUpdates.forEach((update) => {
-				const taskIndex = tasksWithPendingUpdates.findIndex((t) => t.id === update.taskId);
-				if (taskIndex >= 0) {
-					tasksWithPendingUpdates[taskIndex] = {
-						...tasksWithPendingUpdates[taskIndex],
-						status: update.newStatus as any
-					};
-				}
-			});
-
-			localTasks = tasksWithPendingUpdates;
-		}
-	});
-
-	$effect(() => {
-		if (localTasks.length === 0) return;
-
-		const initialTasksMap = new Map(initialTasks.map((task) => [task.id, task]));
-		const localTasksMap = new Map(localTasks.map((task) => [task.id, task]));
-
-		const updatedTasks = localTasks.map((localTask) => {
-			const initialTask = initialTasksMap.get(localTask.id);
-
-			if (!initialTask) return localTask;
-
-			const pendingUpdate = pendingUpdates.find((u) => u.taskId === localTask.id);
+	// Compute the final task list with optimistic updates applied
+	const currentTasks = $derived(() => {
+		return initialTasks.map((task) => {
+			const pendingUpdate = pendingUpdates.find((u) => u.taskId === task.id);
 			if (pendingUpdate) {
 				return {
-					...initialTask,
+					...task,
 					status: pendingUpdate.newStatus as any
 				};
 			}
-
-			return initialTask;
+			return task;
 		});
-
-		initialTasks.forEach((initialTask) => {
-			if (!localTasksMap.has(initialTask.id)) {
-				updatedTasks.push(initialTask);
-			}
-		});
-
-		localTasks = updatedTasks;
 	});
 
 	const columnDefinitions = [
@@ -111,7 +74,7 @@
 
 	// Derived state using $derived
 	const filteredAndSortedTasks = $derived.by(() => {
-		let result = localTasks.filter((task) => !task.deleted);
+		let result = currentTasks().filter((task) => !task.deleted);
 
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
@@ -187,33 +150,26 @@
 			if (data.success) {
 				toast.success(data.message || 'Task status updated');
 
+				// Success - remove the pending update
 				if (pendingUpdateIndex >= 0) {
-					pendingUpdates.splice(pendingUpdateIndex, 1);
+					pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
 				}
 			} else {
 				toast.error(data.message || 'Failed to update task status');
 
+				// Failure - remove the pending update (this will revert the UI)
 				if (pendingUpdateIndex >= 0) {
-					const revertTo = pendingUpdates[pendingUpdateIndex].prevStatus;
-
-					localTasks = localTasks.map((task) =>
-						task.id === taskId ? { ...task, status: revertTo as any } : task
-					);
-
-					pendingUpdates.splice(pendingUpdateIndex, 1);
+					pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
 				}
 			}
 		} catch (error) {
 			console.error('Error updating task status:', error);
 			toast.error('Failed to update task status');
 
+			// Remove the pending update on error (this will revert the UI)
 			const pendingUpdateIndex = pendingUpdates.findIndex((u) => u.taskId === taskId);
 			if (pendingUpdateIndex >= 0) {
-				const revertTo = pendingUpdates[pendingUpdateIndex].prevStatus;
-				localTasks = localTasks.map((task) =>
-					task.id === taskId ? { ...task, status: revertTo as any } : task
-				);
-				pendingUpdates.splice(pendingUpdateIndex, 1);
+				pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
 			}
 		} finally {
 			updatingTaskId = null;
@@ -231,13 +187,8 @@
 
 	function handleConsider(column: any, e: CustomEvent) {
 		const { items } = e.detail;
-		// Update the column tasks reactively
-		const updatedColumns = populatedColumns().map((col) =>
-			col.id === column.id ? { ...col, tasks: items } : col
-		);
-		// We need to update the local tasks to reflect this change
-		const allTasks = updatedColumns.flatMap((col) => col.tasks);
-		localTasks = allTasks;
+		// Just update the column items for drag preview
+		column.tasks = items;
 	}
 
 	function handleFinalize(column: any, e: CustomEvent) {
@@ -250,29 +201,23 @@
 				const prevStatus = draggedTask.status;
 				const newStatus = column.id;
 
-				// Apply optimistic update
-				localTasks = localTasks.map((task) =>
-					task.id === draggedTask.id ? { ...task, status: newStatus as any } : task
-				);
-
-				// Add to pending updates
-				pendingUpdates.push({
-					taskId: draggedTask.id,
-					newStatus,
-					prevStatus
-				});
+				// Add to pending updates for optimistic update
+				pendingUpdates = [
+					...pendingUpdates,
+					{
+						taskId: draggedTask.id,
+						newStatus,
+						prevStatus
+					}
+				];
 
 				// Update on server
 				updateTaskStatus(draggedTask.id, newStatus);
 			}
 		}
 
-		// Update the final column state
-		const updatedColumns = populatedColumns().map((col) =>
-			col.id === column.id ? { ...col, tasks: items } : col
-		);
-		const allTasks = updatedColumns.flatMap((col) => col.tasks);
-		localTasks = allTasks;
+		// Update the column with the final items
+		column.tasks = items;
 	}
 
 	// Clear all filters
@@ -290,7 +235,7 @@
 </script>
 
 <!-- If we have no tasks yet, show a loading state or empty state -->
-{#if localTasks.length === 0}
+{#if currentTasks().length === 0}
 	<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 		{#each columnDefinitions as column (column.id)}
 			<div class="flex h-full flex-col">
@@ -431,7 +376,7 @@
 
 		{#if searchQuery || priorityFilter !== 'all'}
 			<div class="text-muted-foreground mb-2 text-sm">
-				Showing {totalFilteredTasks} of {localTasks.filter((t) => !t.deleted).length} tasks
+				Showing {totalFilteredTasks} of {currentTasks().filter((t) => !t.deleted).length} tasks
 				{#if searchQuery}
 					<span>
 						matching "<strong>{searchQuery}</strong>"
