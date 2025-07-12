@@ -15,6 +15,7 @@
 	import { Popover, PopoverContent, PopoverTrigger } from '$lib/components/ui/popover';
 	import { Switch } from '$lib/components/ui/switch';
 	import { cn } from '$lib/utils';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		projectId: string;
@@ -123,7 +124,7 @@
 	};
 
 	const handleCancel = () => {
-		window.location.href = `/projects/${projectId}`;
+		goto(`/projects/${projectId}`);
 	};
 
 	const getStatusLabel = (status: string) => {

@@ -41,7 +41,7 @@
 	};
 
 	const handleCancel = () => {
-		history.back();
+		goto('projects');
 	};
 
 	const handleSubmit = () => {
