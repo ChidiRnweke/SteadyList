@@ -77,11 +77,11 @@
 		<div class="mb-2 flex items-start justify-between">
 			<h3 class="line-clamp-2 font-medium">{task.title}</h3>
 			<DropdownMenu>
-				<DropdownMenuTrigger>
-					<Button variant="ghost" size="icon" class="h-8 w-8">
-						<MoreHorizontal class="h-4 w-4" />
-						<span class="sr-only">Menu</span>
-					</Button>
+				<DropdownMenuTrigger
+					class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+				>
+					<MoreHorizontal class="h-4 w-4" />
+					<span class="sr-only">Menu</span>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
 					<DropdownMenuItem>
@@ -91,17 +91,9 @@
 						</a>
 					</DropdownMenuItem>
 
-					<DropdownMenuItem class="text-destructive">
-						<Button
-							type="button"
-							variant="ghost"
-							class="text-destructive m-0 p-0 has-[>svg]:px-0"
-							onclick={handleDelete}
-							disabled={busy}
-						>
-							<Trash2 class="mr-2 h-4 w-4" />
-							{busy ? 'Deleting...' : 'Delete'}
-						</Button>
+					<DropdownMenuItem class="text-destructive" onclick={handleDelete} disabled={busy}>
+						<Trash2 class="mr-2 h-4 w-4" />
+						{busy ? 'Deleting...' : 'Delete'}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

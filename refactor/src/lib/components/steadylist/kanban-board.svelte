@@ -288,11 +288,11 @@
 
 			<div class="flex w-full items-center gap-2 sm:w-auto">
 				<DropdownMenu>
-					<DropdownMenuTrigger>
-						<Button variant="outline" size="sm" class="flex items-center gap-1">
-							<Filter class="h-3.5 w-3.5" />
-							<span>Priority</span>
-						</Button>
+					<DropdownMenuTrigger
+						class="border-input bg-background ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+					>
+						<Filter class="h-3.5 w-3.5" />
+						<span>Priority</span>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" class="w-40">
 						<DropdownMenuLabel>Filter by Priority</DropdownMenuLabel>
@@ -325,11 +325,11 @@
 				</DropdownMenu>
 
 				<DropdownMenu>
-					<DropdownMenuTrigger>
-						<Button variant="outline" size="sm" class="flex items-center gap-1">
-							<ArrowUpDown class="h-3.5 w-3.5" />
-							<span>Sort</span>
-						</Button>
+					<DropdownMenuTrigger
+						class="border-input bg-background ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+					>
+						<ArrowUpDown class="h-3.5 w-3.5" />
+						<span>Sort</span>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" class="w-40">
 						<DropdownMenuLabel>Sort by</DropdownMenuLabel>

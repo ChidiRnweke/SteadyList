@@ -12,14 +12,7 @@
 		CardHeader,
 		CardTitle
 	} from '$lib/components/ui/card';
-	import {
-		Form,
-		FormField,
-		FormItem,
-		FormLabel,
-		FormMessage,
-		FormDescription
-	} from '$lib/components/ui/form';
+	import { Label } from '$lib/components/ui/label';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { createTask } from '$lib/tasks';
@@ -224,35 +217,41 @@
 		</CardHeader>
 		<CardContent>
 			<form method="POST" use:enhance class="space-y-6">
-				<FormField {form} name="prompt">
-					<FormItem>
-						<FormLabel>What are you working on?</FormLabel>
-						<Textarea
-							bind:value={$form.prompt}
-							placeholder="e.g., I'm building a marketing website for a new product launch"
-							class="min-h-[100px] resize-none"
-						/>
-						<FormDescription>
-							Provide details about your project to get more relevant task suggestions
-						</FormDescription>
-						<FormMessage />
-					</FormItem>
-				</FormField>
+				<div class="space-y-2">
+					<Label for="prompt">What are you working on?</Label>
+					<Textarea
+						id="prompt"
+						name="prompt"
+						bind:value={$form.prompt}
+						placeholder="e.g., I'm building a marketing website for a new product launch"
+						class="min-h-[100px] resize-none"
+					/>
+					<p class="text-muted-foreground text-sm">
+						Provide details about your project to get more relevant task suggestions
+					</p>
+					{#if $errors.prompt}
+						<p class="text-destructive text-sm">{$errors.prompt}</p>
+					{/if}
+				</div>
 
 				<div class="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
-					<FormField {form} name="includeDueDates">
-						<FormItem class="flex items-center space-x-2">
-							<Checkbox bind:checked={$form.includeDueDates} />
-							<FormLabel class="text-sm font-normal">Include due dates</FormLabel>
-						</FormItem>
-					</FormField>
+					<div class="flex items-center space-x-2">
+						<Checkbox
+							id="includeDueDates"
+							name="includeDueDates"
+							bind:checked={$form.includeDueDates}
+						/>
+						<Label for="includeDueDates" class="text-sm font-normal">Include due dates</Label>
+					</div>
 
-					<FormField {form} name="includePriorities">
-						<FormItem class="flex items-center space-x-2">
-							<Checkbox bind:checked={$form.includePriorities} />
-							<FormLabel class="text-sm font-normal">Include priorities</FormLabel>
-						</FormItem>
-					</FormField>
+					<div class="flex items-center space-x-2">
+						<Checkbox
+							id="includePriorities"
+							name="includePriorities"
+							bind:checked={$form.includePriorities}
+						/>
+						<Label for="includePriorities" class="text-sm font-normal">Include priorities</Label>
+					</div>
 				</div>
 
 				<Button type="submit" disabled={isGenerating} class="bg-secondary hover:bg-secondary/90">
