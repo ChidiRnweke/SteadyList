@@ -64,11 +64,11 @@
 					<div class="flex items-start justify-between">
 						<CardTitle class="text-primary text-xl">{project.name}</CardTitle>
 						<DropdownMenu.Root>
-							<DropdownMenu.Trigger>
-								<Button variant="ghost" size="icon" class="h-8 w-8">
-									<MoreHorizontal class="h-4 w-4" />
-									<span class="sr-only">Menu</span>
-								</Button>
+							<DropdownMenu.Trigger
+								class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+							>
+								<MoreHorizontal class="h-4 w-4" />
+								<span class="sr-only">Menu</span>
 							</DropdownMenu.Trigger>
 							<DropdownMenu.Content align="end">
 								<DropdownMenu.Item>

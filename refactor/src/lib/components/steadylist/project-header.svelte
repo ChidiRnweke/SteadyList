@@ -104,31 +104,23 @@
 		<div class="flex flex-wrap gap-2">
 			{#if deletedTasks.length > 0}
 				<DropdownMenu>
-					<DropdownMenuTrigger>
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<DropdownMenuTrigger
+						class="border-secondary/20 bg-background text-secondary ring-offset-background hover:bg-secondary/10 hover:text-secondary focus-visible:ring-ring inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-all duration-300 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+						onmouseenter={() => (isHovering = true)}
+						onmouseleave={() => (isHovering = false)}
+					>
 						<div
-							class="inline-flex"
-							onmouseenter={() => (isHovering = true)}
-							onmouseleave={() => (isHovering = false)}
+							class="h-4 w-4"
+							style="transform: rotate({isHovering ? '8deg' : '0deg'}); scale: {isHovering
+								? 1.1
+								: 1}; transition: all 0.5s ease-in-out;"
 						>
-							<Button
-								variant="outline"
-								class="border-secondary/20 text-secondary hover:bg-secondary/10 flex items-center gap-2 transition-all duration-300"
-							>
-								<div
-									class="h-4 w-4"
-									style="transform: rotate({isHovering ? '8deg' : '0deg'}); scale: {isHovering
-										? 1.1
-										: 1}; transition: all 0.5s ease-in-out;"
-								>
-									<Trash2 class="h-4 w-4" />
-								</div>
-								<span>Trash</span>
-								<Badge class="bg-secondary ml-1 h-5 px-1.5 text-white">
-									{deletedTasks.length}
-								</Badge>
-							</Button>
+							<Trash2 class="h-4 w-4" />
 						</div>
+						<span>Trash</span>
+						<Badge class="bg-secondary ml-1 h-5 px-1.5 text-white">
+							{deletedTasks.length}
+						</Badge>
 					</DropdownMenuTrigger>
 
 					<DropdownMenuContent align="end" class="w-72">
@@ -213,14 +205,11 @@
 			</Button>
 
 			<AlertDialog>
-				<AlertDialogTrigger>
-					<Button
-						variant="outline"
-						class="text-destructive border-destructive/20 hover:bg-destructive/10"
-					>
-						<Trash2 class="mr-2 h-4 w-4" />
-						Delete
-					</Button>
+				<AlertDialogTrigger
+					class="border-destructive/20 bg-background text-destructive ring-offset-background hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring inline-flex h-10 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+				>
+					<Trash2 class="mr-2 h-4 w-4" />
+					Delete
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>

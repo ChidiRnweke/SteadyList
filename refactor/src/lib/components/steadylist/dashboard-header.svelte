@@ -88,11 +88,11 @@
 		/>
 
 		<Sheet>
-			<SheetTrigger>
-				<Button variant="ghost" size="icon" class="md:hidden">
-					<Menu class="h-5 w-5" />
-					<span class="sr-only">Toggle menu</span>
-				</Button>
+			<SheetTrigger
+				class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 md:hidden"
+			>
+				<Menu class="h-5 w-5" />
+				<span class="sr-only">Toggle menu</span>
 			</SheetTrigger>
 			<SheetContent side="left" class="w-[240px] sm:w-[300px]">
 				<div class="px-2 py-6">
@@ -102,18 +102,18 @@
 		</Sheet>
 
 		<DropdownMenu>
-			<DropdownMenuTrigger>
-				<Button variant="ghost" class="relative h-10 w-10 rounded-full">
-					<Avatar>
-						<AvatarImage
-							src={user?.image || '/placeholder.svg?height=40&width=40'}
-							alt={user?.name || 'User'}
-						/>
-						<AvatarFallback class="bg-primary/10 text-primary">
-							{user?.name?.charAt(0) || 'U'}
-						</AvatarFallback>
-					</Avatar>
-				</Button>
+			<DropdownMenuTrigger
+				class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+			>
+				<Avatar>
+					<AvatarImage
+						src={user?.image || '/placeholder.svg?height=40&width=40'}
+						alt={user?.name || 'User'}
+					/>
+					<AvatarFallback class="bg-primary/10 text-primary">
+						{user?.name?.charAt(0) || 'U'}
+					</AvatarFallback>
+				</Avatar>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
 				<DropdownMenuItem class="font-medium">

@@ -39,18 +39,18 @@
 </script>
 
 <Popover.Root bind:open>
-	<Popover.Trigger>
-		<Button variant="ghost" size="icon" class="relative">
-			<Bell class="h-5 w-5" />
-			{#if unreadCount > 0}
-				<span
-					class="bg-destructive absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white"
-				>
-					{unreadCount}
-				</span>
-			{/if}
-			<span class="sr-only">Notifications</span>
-		</Button>
+	<Popover.Trigger
+		class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex h-10 w-10 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+	>
+		<Bell class="h-5 w-5" />
+		{#if unreadCount > 0}
+			<span
+				class="bg-destructive absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full text-xs text-white"
+			>
+				{unreadCount}
+			</span>
+		{/if}
+		<span class="sr-only">Notifications</span>
 	</Popover.Trigger>
 	<Popover.Content class="w-80 p-0" align="end">
 		<div class="border-b p-4">

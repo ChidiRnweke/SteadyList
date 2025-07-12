@@ -179,17 +179,14 @@
 				</PopoverContent>
 				<Label>Due Date</Label>
 				<Popover bind:open={calendarOpen}>
-					<PopoverTrigger>
-						<Button
-							variant="outline"
-							class={cn(
-								'w-full justify-start pl-3 text-left font-normal',
-								!formData.dueDate && 'text-muted-foreground'
-							)}
-						>
-							{formData.dueDate ? format(formData.dueDate, 'PPP') : 'Pick a date'}
-							<Calendar class="ml-auto h-4 w-4 opacity-50" />
-						</Button>
+					<PopoverTrigger
+						class={cn(
+							'border-input bg-background ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-10 w-full items-center justify-start rounded-md border px-3 py-2 text-sm font-normal transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+							!formData.dueDate && 'text-muted-foreground'
+						)}
+					>
+						{formData.dueDate ? format(formData.dueDate, 'PPP') : 'Pick a date'}
+						<Calendar class="ml-auto h-4 w-4 opacity-50" />
 					</PopoverTrigger>
 					<PopoverContent class="w-auto p-0" align="start">
 						<CalendarComponent bind:value={formData.dueDate} class="rounded-md border" />
