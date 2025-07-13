@@ -17,17 +17,21 @@
 		DropdownMenuSeparator,
 		DropdownMenuCheckboxItem
 	} from '../ui/dropdown-menu/index.js';
+	import { browser } from '$app/environment';
+
+	// Detect if we're on a mobile device
+	let isMobile = $state(false);
+
+	if (browser) {
+		isMobile =
+			/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+			window.innerWidth < 768;
+	}
 
 	interface Props {
 		tasks: Task[];
 		projectId: string;
 	}
-
-	type PendingUpdate = {
-		taskId: string;
-		newStatus: string;
-		prevStatus: string;
-	};
 
 	type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 	type SortOption = 'newest' | 'oldest' | 'priority' | 'alphabetical';
@@ -35,26 +39,24 @@
 	let { tasks: initialTasks, projectId }: Props = $props();
 
 	let updatingTaskId = $state<string | null>(null);
-	let toastId = $state<string | number | null>(null);
 
 	let searchQuery = $state('');
 	let priorityFilter = $state<PriorityFilter>('all');
 	let sortOption = $state<SortOption>('newest');
 
-	let pendingUpdates = $state<PendingUpdate[]>([]);
+	let tasks = $state<Task[]>([]);
 
-	// Compute the final task list with optimistic updates applied
+	// State for tracking drag operations
+	let dragState = $state<{ [columnId: string]: Task[] } | null>(null);
+
+	// Sync with initial tasks
+	$effect(() => {
+		tasks = [...initialTasks];
+	});
+
+	// Compute the final task list
 	const currentTasks = $derived(() => {
-		return initialTasks.map((task) => {
-			const pendingUpdate = pendingUpdates.find((u) => u.taskId === task.id);
-			if (pendingUpdate) {
-				return {
-					...task,
-					status: pendingUpdate.newStatus as any
-				};
-			}
-			return task;
-		});
+		return tasks.filter((task) => !task.deleted);
 	});
 
 	const columnDefinitions = [
@@ -108,114 +110,76 @@
 		});
 	});
 
+	// Derived value for populated columns
 	const populatedColumns = $derived(() => {
+		// Use drag state if available, otherwise use normal filtered tasks
+		const tasksToUse = dragState || {};
+
 		return columnDefinitions.map((column) => ({
 			...column,
-			tasks: filteredAndSortedTasks.filter((task) => task.status === column.id)
+			tasks: dragState
+				? tasksToUse[column.id] || []
+				: filteredAndSortedTasks.filter((task) => task.status === column.id)
 		}));
 	});
 
-	const totalFilteredTasks = $derived(() => {
-		return filteredAndSortedTasks.length;
-	});
+	// Derived value for total filtered tasks
+	const totalFilteredTasks = $derived(filteredAndSortedTasks.length);
 
-	async function updateTaskStatus(taskId: string, newStatus: string) {
-		updatingTaskId = taskId;
-
-		// Show toast
-		const id = toast.loading(`Updating task status to ${newStatus.replace('-', ' ')}...`);
-		toastId = id;
-
-		try {
-			const response = await fetch(`/projects/${projectId}/tasks/${taskId}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					status: newStatus
-				})
-			});
-
-			const data = await response.json();
-
-			if (toastId) {
-				toast.dismiss(toastId);
-			}
-
-			const pendingUpdateIndex = pendingUpdates.findIndex((u) => u.taskId === taskId);
-
-			if (data.success) {
-				toast.success(data.message || 'Task status updated');
-
-				// Success - remove the pending update
-				if (pendingUpdateIndex >= 0) {
-					pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
-				}
-			} else {
-				toast.error(data.message || 'Failed to update task status');
-
-				// Failure - remove the pending update (this will revert the UI)
-				if (pendingUpdateIndex >= 0) {
-					pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
-				}
-			}
-		} catch (error) {
-			console.error('Error updating task status:', error);
-			toast.error('Failed to update task status');
-
-			// Remove the pending update on error (this will revert the UI)
-			const pendingUpdateIndex = pendingUpdates.findIndex((u) => u.taskId === taskId);
-			if (pendingUpdateIndex >= 0) {
-				pendingUpdates = pendingUpdates.filter((_, index) => index !== pendingUpdateIndex);
-			}
-		} finally {
-			updatingTaskId = null;
-			toastId = null;
-		}
-	}
-
-	function handleDragAndDrop(column: any) {
+	function handleDragAndDrop(columnIndex: number) {
+		const column = populatedColumns()[columnIndex];
 		return {
-			items: column.tasks,
-			flipDurationMs: 200,
-			dropTargetStyle: {}
+			items: column?.tasks || [],
+			flipDurationMs: isMobile ? 100 : 200,
+			dropTargetStyle: {
+				outline: '2px dashed #3b82f6',
+				outlineOffset: '2px',
+				backgroundColor: 'rgba(59, 130, 246, 0.05)'
+			},
+			type: 'task',
+			dropFromOthersDisabled: false
 		};
 	}
 
-	function handleConsider(column: any, e: CustomEvent) {
+	function handleConsider(columnIndex: number, e: CustomEvent) {
 		const { items } = e.detail;
-		// Just update the column items for drag preview
-		column.tasks = items;
+		const column = columnDefinitions[columnIndex];
+
+		// Create or update drag state
+		if (!dragState) {
+			// Initialize drag state with current column distribution
+			dragState = {};
+			columnDefinitions.forEach((col) => {
+				dragState![col.id] = filteredAndSortedTasks.filter((task) => task.status === col.id);
+			});
+		}
+
+		// Update the specific column in drag state
+		dragState[column.id] = [...items];
 	}
 
-	function handleFinalize(column: any, e: CustomEvent) {
+	function handleFinalize(columnIndex: number, e: CustomEvent) {
 		const { items, info } = e.detail;
+		const column = columnDefinitions[columnIndex];
+
+		// Clear drag state
+		dragState = null;
 
 		if (info.source === SOURCES.POINTER) {
 			const draggedTask = items.find((item: any) => info.id === item.id);
 			if (draggedTask && draggedTask.status !== column.id) {
-				// Update task status
-				const prevStatus = draggedTask.status;
-				const newStatus = column.id;
+				// Store previous state for rollback
+				const previousTasks = [...tasks];
 
-				// Add to pending updates for optimistic update
-				pendingUpdates = [
-					...pendingUpdates,
-					{
-						taskId: draggedTask.id,
-						newStatus,
-						prevStatus
-					}
-				];
+				// Update task status optimistically
+				tasks = tasks.map((task) =>
+					task.id === draggedTask.id ? { ...task, status: column.id as any } : task
+				);
 
-				// Update on server
-				updateTaskStatus(draggedTask.id, newStatus);
+				// Update on server with rollback on failure
+				updateTaskStatus(draggedTask.id, column.id, previousTasks);
 			}
 		}
-
-		// Update the column with the final items
-		column.tasks = items;
 	}
 
 	// Clear all filters
@@ -229,6 +193,50 @@
 	function handleSearchChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
+	}
+
+	// Function to update task status on the server with optimistic UI
+	async function updateTaskStatus(taskId: string, newStatus: string, previousTasks: Task[]) {
+		updatingTaskId = taskId;
+
+		// Show loading toast
+		const loadingToastId = toast.loading(`Moving task to ${newStatus.replace('-', ' ')}...`);
+
+		try {
+			const response = await fetch(`/projects/${projectId}/tasks/${taskId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ status: newStatus })
+			});
+
+			const data = await response.json();
+
+			// Dismiss loading toast
+			toast.dismiss(loadingToastId);
+
+			if (!response.ok || !data.success) {
+				throw new Error(data.message || 'Failed to update task status');
+			}
+
+			// Show success toast
+			toast.success(data.message || 'Task status updated');
+		} catch (error) {
+			console.error('Error updating task status:', error);
+
+			// Rollback the optimistic update
+			tasks = previousTasks;
+
+			// Clear any drag state
+			dragState = null;
+
+			// Dismiss loading toast and show error
+			toast.dismiss(loadingToastId);
+			toast.error('Failed to update task status');
+		} finally {
+			updatingTaskId = null;
+		}
 	}
 </script>
 
@@ -393,7 +401,7 @@
 
 		<!-- Kanban board -->
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-			{#each populatedColumns() as column (column.id)}
+			{#each populatedColumns() as column, columnIndex (column.id)}
 				<div class="flex h-full flex-col">
 					<Card class="flex h-full flex-col border-t-4 {column.color}">
 						<CardHeader class="pb-2">
@@ -406,10 +414,10 @@
 						</CardHeader>
 						<CardContent class="flex-grow overflow-hidden pt-0">
 							<div
-								class="max-h-[calc(100vh-300px)] min-h-[200px] space-y-3 overflow-y-auto p-1"
-								use:dndzone={handleDragAndDrop(column)}
-								onconsider={(e) => handleConsider(column, e)}
-								onfinalize={(e) => handleFinalize(column, e)}
+								class="min-h-[500px] space-y-3 overflow-y-auto border-2 border-transparent p-4 transition-colors hover:border-blue-200"
+								use:dndzone={handleDragAndDrop(columnIndex)}
+								onconsider={(e) => handleConsider(columnIndex, e)}
+								onfinalize={(e) => handleFinalize(columnIndex, e)}
 							>
 								{#if column.tasks.length > 0}
 									{#each column.tasks as task (task.id)}
@@ -419,14 +427,14 @@
 												: ''}"
 											data-task-id={task.id}
 											data-status={task.status}
-											animate:flip={{ duration: 200 }}
+											animate:flip={{ duration: isMobile ? 100 : 200 }}
 										>
 											<TaskCard {task} {projectId} />
 										</div>
 									{/each}
 								{:else}
 									<div
-										class="text-muted-foreground flex h-40 flex-col items-center justify-center rounded-md border border-dashed text-center text-sm"
+										class="text-muted-foreground flex h-60 flex-col items-center justify-center rounded-md border-2 border-dashed text-center text-sm"
 									>
 										{#if searchQuery || priorityFilter !== 'all'}
 											<p>No matching tasks</p>
