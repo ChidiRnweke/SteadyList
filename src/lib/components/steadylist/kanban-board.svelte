@@ -128,14 +128,12 @@
 
 		try {
 			const response = await fetch(`/projects/${projectId}/tasks/${taskId}`, {
-				method: 'POST',
+				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					taskId,
-					status: newStatus,
-					_action: 'updateTaskStatus'
+					status: newStatus
 				})
 			});
 
