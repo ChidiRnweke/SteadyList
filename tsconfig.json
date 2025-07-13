@@ -3,7 +3,9 @@
     "**/*",
     "**/.server/**/*",
     "**/.client/**/*",
-    ".react-router/types/**/*"
+    ".react-router/types/**/*",
+    "refactor/src/routes/trash/.server.ts",
+    "refactor/src/routes/trash/.server.ts"
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],

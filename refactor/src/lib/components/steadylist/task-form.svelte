@@ -66,63 +66,6 @@
 		}
 	});
 
-	const validateForm = () => {
-		try {
-			formSchema.parse(formData);
-			errors = {};
-			return true;
-		} catch (error) {
-			if (error instanceof z.ZodError) {
-				const newErrors: Record<string, string> = {};
-				error.errors.forEach((err) => {
-					if (err.path.length > 0) {
-						newErrors[err.path[0] as string] = err.message;
-					}
-				});
-				errors = newErrors;
-			}
-			return false;
-		}
-	};
-
-	const handleSubmit = async (event: Event) => {
-		event.preventDefault();
-
-		if (!validateForm()) {
-			toast.error('Please fix the errors in the form');
-			return;
-		}
-
-		busy = true;
-
-		try {
-			const response = await fetch(`/projects/${projectId}/tasks`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					...formData,
-					dueDate: formData.dueDate?.toISOString()
-				})
-			});
-
-			const result = await response.json();
-
-			if (result.success) {
-				toast.success('Task created successfully');
-				// Redirect or reset form as needed
-				window.location.href = `/projects/${projectId}`;
-			} else {
-				toast.error(result.message || 'Failed to create task');
-			}
-		} catch (error) {
-			toast.error('Failed to create task');
-		} finally {
-			busy = false;
-		}
-	};
-
 	const handleCancel = () => {
 		goto(`/projects/${projectId}`);
 	};
@@ -148,14 +91,14 @@
 </script>
 
 <Card class="mx-auto max-w-2xl border-slate-200 p-6 shadow-sm">
-	<form onsubmit={handleSubmit} class="space-y-6">
+	<form class="space-y-6" action="/projects/{projectId}/tasks" method="post">
 		<!-- Task Title -->
 		<div class="space-y-2">
 			<Label for="title">Task Title</Label>
 			<Input
 				id="title"
 				placeholder="Enter task title"
-				bind:value={formData.title}
+				name="title"
 				class={errors.title ? 'border-destructive' : ''}
 			/>
 			{#if errors.title}
@@ -170,7 +113,7 @@
 				id="description"
 				placeholder="Enter task description (optional)"
 				class="min-h-[100px] resize-none"
-				bind:value={formData.description}
+				name="description"
 			/>
 			<p class="text-muted-foreground text-sm">Provide details about what needs to be done</p>
 			{#if errors.description}
@@ -190,7 +133,7 @@
 						<Calendar class="ml-auto h-4 w-4 opacity-50" />
 					</PopoverTrigger>
 					<PopoverContent class="w-auto p-0" align="start">
-						<CalendarComponent bind:value={formData.dueDate} class="rounded-md border" />
+						<CalendarComponent name="dueDate" class="rounded-md border" />
 					</PopoverContent>
 				</Popover>
 				<p class="text-muted-foreground text-sm">When should this task be completed?</p>
@@ -203,7 +146,7 @@
 		<!-- Priority -->
 		<div class="space-y-2">
 			<Label>Priority</Label>
-			<Select type="single" bind:value={formData.priority}>
+			<Select type="single" name="priority" required value="medium">
 				<SelectTrigger></SelectTrigger>
 				<SelectContent>
 					<SelectItem value="low">Low</SelectItem>
@@ -221,7 +164,7 @@
 			<!-- Status -->
 			<div class="space-y-2">
 				<Label>Status</Label>
-				<Select type="single" bind:value={formData.status}>
+				<Select type="single" name="status" required value={initialStatus || 'todo'}>
 					<SelectTrigger></SelectTrigger>
 					<SelectContent>
 						<SelectItem
@@ -260,7 +203,7 @@
 			<div class="flex flex-col space-y-2">
 				<Label>Set Reminder</Label>
 				<div class="flex items-center gap-2 pt-2">
-					<Switch bind:checked={formData.reminder} />
+					<Switch name="reminder" />
 					<div class="text-muted-foreground flex items-center gap-1 text-sm">
 						<Bell class="h-4 w-4" />
 						Remind me about this task
