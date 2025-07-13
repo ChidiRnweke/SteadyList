@@ -3,19 +3,19 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const { project, status } = data;
 </script>
 
 <div class="space-y-8">
 	<div>
 		<p class="text-muted-foreground mb-6">
-			Add a new task to {project.name}
-			{#if status}
+			Add a new task to {data.project.name}
+			{#if data.status}
 				<span class="ml-1">
-					with status: <span class="font-medium capitalize">{status.replace('-', ' ')}</span>
+					with status: <span class="font-medium capitalize">{data.status.replace('-', ' ')}</span>
 				</span>
 			{/if}
 		</p>
-		<TaskForm projectId={project.id} initialStatus={status || undefined} />
+
+		<TaskForm data={{ ...data, status: data.status ?? '' }} />
 	</div>
 </div>

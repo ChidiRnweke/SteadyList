@@ -1,113 +1,75 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { Card } from '$lib/components/ui/card';
+	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Label } from '$lib/components/ui/label';
-	import type { Project } from '$lib/types';
-	import { goto } from '$app/navigation';
-	import { enhance } from '$app/forms';
+	import { Button } from '$lib/components/ui/button';
+	import { Card } from '$lib/components/ui/card';
+	import { projectSchema, type ProjectSchema } from '$lib/schemas/project-schema';
+	import { type SuperValidated, type Infer, superForm } from 'sveltekit-superforms';
+	import { zodClient } from 'sveltekit-superforms/adapters';
 	import { toast } from 'svelte-sonner';
+	import { goto } from '$app/navigation';
+	import type { Project } from '$lib/types';
 
 	interface Props {
-		project?: Project;
+		data: { form: SuperValidated<Infer<ProjectSchema>>; project?: Project };
+		isEdit?: boolean;
 	}
 
-	let { project }: Props = $props();
+	let { data, isEdit = false }: Props = $props();
 
-	let formData = $state({
-		name: project?.name || '',
-		description: project?.description || ''
+	const form = superForm(data.form, {
+		validators: zodClient(projectSchema),
+		onUpdated: ({ form: f }) => {
+			if (f.valid) {
+				toast.success(isEdit ? 'Project updated!' : 'Project created!');
+				goto('/projects');
+			} else {
+				toast.error('Please fix the errors in the form');
+			}
+		}
 	});
 
-	let errors = $state<Record<string, string>>({});
-	let isSubmitting = $state(false);
-
-	const validateForm = () => {
-		const newErrors: Record<string, string> = {};
-
-		if (!formData.name.trim()) {
-			newErrors.name = 'Project name is required';
-		} else if (formData.name.length > 100) {
-			newErrors.name = 'Project name must be 100 characters or less';
-		}
-
-		if (formData.description && formData.description.length > 500) {
-			newErrors.description = 'Description must be 500 characters or less';
-		}
-
-		errors = newErrors;
-		return Object.keys(newErrors).length === 0;
-	};
+	const { form: formData, enhance } = form;
 
 	const handleCancel = () => {
-		goto('projects');
-	};
-
-	const handleSubmit = () => {
-		if (!validateForm()) return;
-		isSubmitting = true;
+		goto('/projects');
 	};
 </script>
 
 <Card class="mx-auto max-w-2xl border-slate-200 p-6 shadow-sm">
-	<form
-		method="post"
-		action="/projects"
-		use:enhance={({ formData: fd }) => {
-			fd.append('name', formData.name);
-			fd.append('description', formData.description);
-			if (project) {
-				fd.append('id', project.id);
-			}
+	<form method="post" use:enhance class="space-y-6" action="/projects">
+		<Form.Field {form} name="name">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Form.Label>Project Name</Form.Label>
+					<Input {...props} placeholder="Enter project name" bind:value={$formData.name} />
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
 
-			return async ({ result }) => {
-				isSubmitting = false;
-				if (result.type === 'success') {
-					toast.success(project ? 'Project updated!' : 'Project created!');
-					goto('/projects');
-				} else if (result.type === 'failure') {
-					toast.error('Something went wrong');
-				}
-			};
-		}}
-		onsubmit={handleSubmit}
-		class="space-y-6"
-	>
-		<div class="space-y-2">
-			<Label for="name">Project Name</Label>
-			<Input
-				id="name"
-				name="name"
-				placeholder="Enter project name"
-				bind:value={formData.name}
-				class={errors.name ? 'border-red-500' : ''}
-			/>
-			{#if errors.name}
-				<p class="text-sm text-red-500">{errors.name}</p>
-			{/if}
-		</div>
-
-		<div class="space-y-2">
-			<Label for="description">Description</Label>
-			<Textarea
-				id="description"
-				name="description"
-				placeholder="Enter project description (optional)"
-				class="min-h-[100px] resize-none {errors.description ? 'border-red-500' : ''}"
-				bind:value={formData.description}
-			/>
-			<p class="text-muted-foreground text-sm">Briefly describe the purpose of this project</p>
-			{#if errors.description}
-				<p class="text-sm text-red-500">{errors.description}</p>
-			{/if}
-		</div>
+		<Form.Field {form} name="description">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Form.Label>Description</Form.Label>
+					<Textarea
+						{...props}
+						placeholder="Enter project description (optional)"
+						class="min-h-[100px] resize-none"
+						bind:value={$formData.description}
+					/>
+				{/snippet}
+			</Form.Control>
+			<Form.Description>Briefly describe the purpose of this project</Form.Description>
+			<Form.FieldErrors />
+		</Form.Field>
 
 		<div class="flex justify-end gap-4">
 			<Button type="button" variant="outline" onclick={handleCancel}>Cancel</Button>
-			<Button type="submit" disabled={isSubmitting} class="bg-primary hover:bg-primary/90">
-				{isSubmitting ? 'Saving...' : project ? 'Update Project' : 'Create Project'}
-			</Button>
+			<Form.Button class="bg-primary hover:bg-primary/90">
+				{isEdit ? 'Update Project' : 'Create Project'}
+			</Form.Button>
 		</div>
 	</form>
 </Card>
