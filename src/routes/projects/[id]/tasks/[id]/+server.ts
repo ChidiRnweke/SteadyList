@@ -1,33 +1,54 @@
 import { json } from '@sveltejs/kit';
 import { updateTask } from '$lib/tasks';
 import type { RequestHandler } from './$types';
+import type { UpdateTaskInput } from '$lib/types';
+import { updateTaskSchema } from '$lib/schemas/task-schema';
 
 export const PUT: RequestHandler = async ({ request, params }) => {
 	try {
 		const body = await request.json();
-		const { status } = body;
 
-		if (!status) {
+		// Validate request body using Zod
+		const validationResult = updateTaskSchema.safeParse(body);
+
+		if (!validationResult.success) {
 			return json(
 				{
 					success: false,
-					message: 'Status is required'
+					message: 'Validation failed',
+					errors: validationResult.error.errors.map((err) => ({
+						field: err.path.join('.'),
+						message: err.message
+					}))
 				},
-				{ status: 400 }
+				{ status: 422 }
 			);
 		}
 
-		if (!['todo', 'in-progress', 'blocked', 'done'].includes(status)) {
+		const validatedData = validationResult.data;
+
+		// Check if at least one field is provided for update
+		if (Object.keys(validatedData).length === 0) {
 			return json(
 				{
 					success: false,
-					message: 'Invalid status value'
+					message: 'No valid fields provided for update'
 				},
-				{ status: 400 }
+				{ status: 422 }
 			);
 		}
 
-		const result = await updateTask(params.id, { status });
+		// Convert validated data to UpdateTaskInput format
+		const updateData: UpdateTaskInput = {};
+		if (validatedData.status !== undefined) updateData.status = validatedData.status;
+		if (validatedData.title !== undefined) updateData.title = validatedData.title;
+		if (validatedData.description !== undefined)
+			updateData.description = validatedData.description || undefined;
+		if (validatedData.priority !== undefined) updateData.priority = validatedData.priority;
+		if (validatedData.dueDate !== undefined) updateData.dueDate = validatedData.dueDate;
+		if (validatedData.reminder !== undefined) updateData.reminder = validatedData.reminder;
+
+		const result = await updateTask(params.id, updateData);
 
 		if (!result) {
 			return json(
@@ -39,13 +60,21 @@ export const PUT: RequestHandler = async ({ request, params }) => {
 			);
 		}
 
+		// Generate appropriate success message
+		let message = 'Task updated successfully';
+		if (validatedData.status)
+			message = `Task status updated to ${validatedData.status.replace('-', ' ')}`;
+		else if (validatedData.title) message = 'Task title updated';
+		else if (validatedData.description !== undefined) message = 'Task description updated';
+		else if (validatedData.priority) message = 'Task priority updated';
+
 		return json({
 			success: true,
-			message: `Task status updated to ${status.replace('-', ' ')}`,
+			message,
 			task: result
 		});
 	} catch (error) {
-		console.error('Error updating task status:', error);
+		console.error('Error updating task:', error);
 		return json(
 			{
 				success: false,
