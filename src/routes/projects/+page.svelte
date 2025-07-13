@@ -6,7 +6,7 @@
 
 	let { data }: PageProps = $props();
 
-	const { projects, tasks } = data;
+	const { projects, tasks, deleteForm } = data;
 </script>
 
 <div class="space-y-8">
@@ -18,5 +18,5 @@
 		</Button>
 	</div>
 
-	<ProjectList {projects} {tasks} />
+	<ProjectList {projects} {tasks} {deleteForm} />
 </div>
