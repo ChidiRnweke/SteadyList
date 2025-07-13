@@ -33,7 +33,7 @@
 		deletedProjects: Project[];
 	}
 
-	let { deletedTasks, deletedProjects }: Props = $props();
+	let { deletedTasks = $bindable(), deletedProjects = $bindable() }: Props = $props();
 
 	let isDialogOpen = $state(false);
 	let activeTab = $state('tasks');
@@ -150,70 +150,61 @@
 						Recent Tasks
 					</DropdownMenu.Label>
 
-					<AnimatePresence>
-						{#each recentTasks as task, index (task.id)}
-							<motion
-								initial={{ opacity: 0, y: 10 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -10 }}
-								transition={{ delay: index * 0.05 }}
-							>
-								<DropdownMenu.Item
-									disabled={busy || restoredIds.includes(task.id) || task.projectDeleted}
-									class="focus:bg-secondary/5 py-2"
-								>
-									<div class="flex w-full flex-col gap-1">
-										<div class="flex w-full items-start justify-between">
-											<span class="max-w-[180px] truncate text-sm font-medium">{task.title}</span>
-											<Badge
-												variant="outline"
-												class="
-                                                    {task.status === 'todo'
-													? 'bg-secondary/10 text-secondary border-secondary/30'
-													: ''}
-                                                    {task.status === 'in-progress'
-													? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
-													: ''}
-                                                    {task.status === 'blocked'
-													? 'bg-destructive/10 text-destructive border-destructive/30'
-													: ''}
-                                                    {task.status === 'done'
-													? 'border-green-500/30 bg-green-500/10 text-green-500'
-													: ''}
-                                                    h-4 py-0 text-[9px]
-                                                "
-											>
-												{task.status
-													.split('-')
-													.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-													.join(' ')}
-											</Badge>
-										</div>
-										<div class="flex items-center justify-between">
-											<span class="text-muted-foreground text-xs">Project: {task.projectName}</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												class="hover:bg-secondary/10 hover:text-secondary h-6 p-0 px-2 text-xs"
-												disabled={busy || restoredIds.includes(task.id) || task.projectDeleted}
-												onclick={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													handleRestore('task', task.id);
-												}}
-											>
-												<RefreshCcw class="mr-1 h-2.5 w-2.5" />
-												Restore
-											</Button>
-										</div>
-									</div>
-								</DropdownMenu.Item>
-								{#if index < recentTasks.length - 1}
-									<div class="bg-border/40 mx-2 my-0.5 h-[1px]"></div>
-								{/if}
-							</motion>
-						{/each}
-					</AnimatePresence>
+					{#each recentTasks as task, index (task.id)}
+						<DropdownMenu.Item
+							disabled={busy || restoredIds.includes(task.id) || task.projectDeleted}
+							class="focus:bg-secondary/5 py-2"
+						>
+							<div class="flex w-full flex-col gap-1">
+								<div class="flex w-full items-start justify-between">
+									<span class="max-w-[180px] truncate text-sm font-medium">{task.title}</span>
+									<Badge
+										variant="outline"
+										class="
+                                            {task.status === 'todo'
+											? 'bg-secondary/10 text-secondary border-secondary/30'
+											: ''}
+                                            {task.status === 'in-progress'
+											? 'border-amber-500/30 bg-amber-500/10 text-amber-500'
+											: ''}
+                                            {task.status === 'blocked'
+											? 'bg-destructive/10 text-destructive border-destructive/30'
+											: ''}
+                                            {task.status === 'done'
+											? 'border-green-500/30 bg-green-500/10 text-green-500'
+											: ''}
+                                            h-4 py-0 text-[9px]
+                                        "
+									>
+										{task.status
+											.split('-')
+											.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+											.join(' ')}
+									</Badge>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-muted-foreground text-xs">Project: {task.projectName}</span>
+									<Button
+										variant="ghost"
+										size="sm"
+										class="hover:bg-secondary/10 hover:text-secondary h-6 p-0 px-2 text-xs"
+										disabled={busy || restoredIds.includes(task.id) || task.projectDeleted}
+										onclick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											handleRestore('task', task.id);
+										}}
+									>
+										<RefreshCcw class="mr-1 h-2.5 w-2.5" />
+										Restore
+									</Button>
+								</div>
+							</div>
+						</DropdownMenu.Item>
+						{#if index < recentTasks.length - 1}
+							<div class="bg-border/40 mx-2 my-0.5 h-[1px]"></div>
+						{/if}
+					{/each}
 				</DropdownMenu.Group>
 			{/if}
 
@@ -224,67 +215,57 @@
 						Recent Projects
 					</DropdownMenu.Label>
 
-					<AnimatePresence>
-						{#each recentProjects as project, index (project.id)}
-							<motion
-								initial={{ opacity: 0, y: 10 }}
-								animate={{ opacity: 1, y: 0 }}
-								exit={{ opacity: 0, y: -10 }}
-								transition={{ delay: index * 0.05 }}
-							>
-								<DropdownMenu.Item
-									disabled={busy || restoredIds.includes(project.id)}
-									class="focus:bg-secondary/5 py-2"
-								>
-									<div class="flex w-full flex-col gap-1">
-										<div class="flex w-full items-start justify-between">
-											<span class="text-sm font-medium">{project.name}</span>
-											<Badge
-												variant="outline"
-												class="bg-secondary/10 text-secondary border-secondary/30 h-4 py-0 text-[9px]"
-											>
-												{project.taskCount} task{project.taskCount !== 1 ? 's' : ''}
-											</Badge>
-										</div>
-										<div class="flex items-center justify-between">
-											<span class="text-muted-foreground text-xs">
-												Deleted {formatDistanceToNow(new Date(project.updatedAt), {
-													addSuffix: true
-												})}
-											</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												class="hover:bg-secondary/10 hover:text-secondary h-6 p-0 px-2 text-xs"
-												disabled={busy || restoredIds.includes(project.id)}
-												onclick={(e: MouseEvent) => {
-													e.preventDefault();
-													e.stopPropagation();
-													handleRestore('project', project.id);
-												}}
-											>
-												<RefreshCcw class="mr-1 h-2.5 w-2.5" />
-												Restore
-											</Button>
-										</div>
-									</div>
-								</DropdownMenu.Item>
-								{#if index < recentProjects.length - 1}
-									<div class="bg-border/40 mx-2 my-0.5 h-[1px]"></div>
-								{/if}
-							</motion>
-						{/each}
-					</AnimatePresence>
+					{#each recentProjects as project, index (project.id)}
+						<DropdownMenu.Item
+							disabled={busy || restoredIds.includes(project.id)}
+							class="focus:bg-secondary/5 py-2"
+						>
+							<div class="flex w-full flex-col gap-1">
+								<div class="flex w-full items-start justify-between">
+									<span class="text-sm font-medium">{project.name}</span>
+									<Badge
+										variant="outline"
+										class="bg-secondary/10 text-secondary border-secondary/30 h-4 py-0 text-[9px]"
+									>
+										{project.taskCount} task{project.taskCount !== 1 ? 's' : ''}
+									</Badge>
+								</div>
+								<div class="flex items-center justify-between">
+									<span class="text-muted-foreground text-xs">
+										Deleted {formatDistanceToNow(new Date(project.updatedAt), {
+											addSuffix: true
+										})}
+									</span>
+									<Button
+										variant="ghost"
+										size="sm"
+										class="hover:bg-secondary/10 hover:text-secondary h-6 p-0 px-2 text-xs"
+										disabled={busy || restoredIds.includes(project.id)}
+										onclick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											handleRestore('project', project.id);
+										}}
+									>
+										<RefreshCcw class="mr-1 h-2.5 w-2.5" />
+										Restore
+									</Button>
+								</div>
+							</div>
+						</DropdownMenu.Item>
+						{#if index < recentProjects.length - 1}
+							<div class="bg-border/40 mx-2 my-0.5 h-[1px]"></div>
+						{/if}
+					{/each}
 				</DropdownMenu.Group>
 			{/if}
 
 			<DropdownMenu.Separator />
-			<DropdownMenu.Item
-				class="hover:bg-secondary/10 hover:text-secondary justify-center text-xs"
-				onselect={() => (isDialogOpen = true)}
-			>
-				<ExternalLink class="mr-1.5 h-3 w-3" />
-				View all trash items ({totalItems})
+			<DropdownMenu.Item class="hover:bg-secondary/10 hover:text-secondary justify-center text-xs">
+				<Button href="/trash" variant="outline">
+					<ExternalLink class="mr-1.5 h-3 w-3" />
+					View all trash items ({totalItems})
+				</Button>
 			</DropdownMenu.Item>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>

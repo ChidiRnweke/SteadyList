@@ -179,22 +179,28 @@
 	};
 </script>
 
-<Card class="border-slate-200 shadow-sm transition-shadow hover:shadow">
-	<CardContent class="p-4">
+<Card class="overflow-hidden border-slate-200 shadow-sm transition-shadow hover:shadow">
+	<CardContent class="min-w-0 p-4">
 		<div class="mb-2 flex items-start justify-between">
 			{#if editingTitle}
-				<div class="mr-2 flex flex-1 items-center gap-2">
+				<div class="mr-2 flex w-full flex-1 items-center gap-2">
 					<Input
 						bind:value={tempTitle}
-						class="text-base font-medium"
+						class="min-w-0 flex-1 text-base font-medium"
 						onkeydown={handleTitleKeydown}
 						onfocusout={saveTitle}
 						autofocus
 					/>
-					<Button size="sm" variant="ghost" onclick={saveTitle} disabled={busy}>
+					<Button
+						size="sm"
+						variant="ghost"
+						onclick={saveTitle}
+						disabled={busy}
+						class="flex-shrink-0"
+					>
 						<Check class="h-4 w-4" />
 					</Button>
-					<Button size="sm" variant="ghost" onclick={cancelTitleEdit}>
+					<Button size="sm" variant="ghost" onclick={cancelTitleEdit} class="flex-shrink-0">
 						<X class="h-4 w-4" />
 					</Button>
 				</div>
@@ -231,17 +237,17 @@
 		</div>
 
 		{#if editingDescription}
-			<div class="mb-3 flex items-start gap-2">
+			<div class="mb-3 flex w-full items-start gap-2">
 				<Textarea
 					bind:value={tempDescription}
 					placeholder="Add a description..."
-					class="resize-none text-sm"
+					class="min-w-0 flex-1 resize-none text-sm"
 					rows="2"
 					onkeydown={handleDescriptionKeydown}
 					onfocusout={saveDescription}
 					autofocus
 				/>
-				<div class="flex flex-col gap-1">
+				<div class="flex flex-shrink-0 flex-col gap-1">
 					<Button size="sm" variant="ghost" onclick={saveDescription} disabled={busy}>
 						<Check class="h-4 w-4" />
 					</Button>
@@ -270,20 +276,31 @@
 
 		<div class="mt-2 flex flex-wrap gap-2">
 			{#if editingPriority}
-				<div class="flex items-center gap-2">
+				<div class="flex w-full max-w-full items-center gap-1">
 					<select
 						bind:value={tempPriority}
-						class="border-input bg-background h-8 w-32 rounded-md border px-3 py-1 text-sm"
+						class="border-input bg-background h-8 max-w-[120px] min-w-0 flex-1 rounded-md border px-2 py-1 text-sm"
 					>
 						<option value="low">Low</option>
 						<option value="medium">Medium</option>
 						<option value="high">High</option>
 					</select>
-					<Button size="sm" variant="ghost" onclick={savePriority} disabled={busy}>
-						<Check class="h-4 w-4" />
+					<Button
+						size="sm"
+						variant="ghost"
+						onclick={savePriority}
+						disabled={busy}
+						class="h-8 w-8 flex-shrink-0 p-0"
+					>
+						<Check class="h-3 w-3" />
 					</Button>
-					<Button size="sm" variant="ghost" onclick={cancelPriorityEdit}>
-						<X class="h-4 w-4" />
+					<Button
+						size="sm"
+						variant="ghost"
+						onclick={cancelPriorityEdit}
+						class="h-8 w-8 flex-shrink-0 p-0"
+					>
+						<X class="h-3 w-3" />
 					</Button>
 				</div>
 			{:else}

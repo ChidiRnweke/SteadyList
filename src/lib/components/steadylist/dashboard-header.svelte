@@ -18,6 +18,18 @@
 	import { auth } from '$lib/firebaseClient';
 	import { signOut } from 'firebase/auth';
 
+	onMount(async () => {
+		const response = await fetch('/trash', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+		const data = await response.json();
+		deletedItems.deletedTasks = data.deletedTasks || [];
+		deletedItems.deletedProjects = data.deletedProjects || [];
+	});
+
 	type User = {
 		name: string;
 		email: string;
@@ -39,20 +51,6 @@
 			email: 'user@example.com',
 			image: null
 		};
-	});
-
-	onMount(async () => {
-		// Load trash data
-		// try {
-		// 	const response = await fetch('/trash');
-		// 	const data = await response.json();
-		// 	deletedItems = {
-		// 		deletedProjects: data.deletedProjects || [],
-		// 		deletedTasks: data.deletedTasks || []
-		// 	};
-		// } catch (error) {
-		// 	console.error('Failed to load trash data:', error);
-		// }
 	});
 
 	const handleSignOut = async () => {
@@ -80,11 +78,9 @@
 	</div>
 
 	<div class="flex items-center gap-4">
-		<NotificationIndicator />
-
 		<TrashIndicator
-			deletedTasks={deletedItems.deletedTasks}
-			deletedProjects={deletedItems.deletedProjects}
+			bind:deletedTasks={deletedItems.deletedTasks}
+			bind:deletedProjects={deletedItems.deletedProjects}
 		/>
 
 		<Sheet>
