@@ -132,9 +132,10 @@
 			items: column?.tasks || [],
 			flipDurationMs: isMobile ? 100 : 200,
 			dropTargetStyle: {
-				outline: '2px dashed #3b82f6',
-				outlineOffset: '2px',
-				backgroundColor: 'rgba(59, 130, 246, 0.05)'
+				outline: '3px dashed #3b82f6',
+				outlineOffset: '4px',
+				backgroundColor: 'rgba(59, 130, 246, 0.08)',
+				borderRadius: '8px'
 			},
 			type: 'task',
 			dropFromOthersDisabled: false
@@ -400,7 +401,7 @@
 		{/if}
 
 		<!-- Kanban board -->
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+		<div class="grid auto-rows-max grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
 			{#each populatedColumns() as column, columnIndex (column.id)}
 				<div class="flex h-full flex-col">
 					<Card class="flex h-full flex-col border-t-4 {column.color}">
@@ -412,9 +413,9 @@
 								<Badge variant="outline">{column.tasks.length}</Badge>
 							</div>
 						</CardHeader>
-						<CardContent class="flex-grow overflow-hidden pt-0">
+						<CardContent class="flex-grow pt-0">
 							<div
-								class="min-h-[500px] space-y-3 overflow-y-auto border-2 border-transparent p-4 transition-colors hover:border-blue-200"
+								class="m-2 min-h-[500px] space-y-3 overflow-y-auto rounded-lg border-2 border-transparent p-6 transition-colors hover:border-blue-200"
 								use:dndzone={handleDragAndDrop(columnIndex)}
 								onconsider={(e) => handleConsider(columnIndex, e)}
 								onfinalize={(e) => handleFinalize(columnIndex, e)}
