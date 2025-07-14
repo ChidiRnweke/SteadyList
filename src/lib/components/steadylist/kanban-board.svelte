@@ -18,6 +18,8 @@
 		DropdownMenuCheckboxItem
 	} from '../ui/dropdown-menu/index.js';
 	import { browser } from '$app/environment';
+	import type { Infer, SuperValidated } from 'sveltekit-superforms';
+	import type { deleteTaskSchema } from '$lib/schemas/delete-schema.js';
 
 	// Detect if we're on a mobile device
 	let isMobile = $state(false);
@@ -31,12 +33,13 @@
 	interface Props {
 		tasks: Task[];
 		projectId: string;
+		deleteForm: SuperValidated<Infer<typeof deleteTaskSchema>>;
 	}
 
 	type PriorityFilter = 'all' | 'high' | 'medium' | 'low';
 	type SortOption = 'newest' | 'oldest' | 'priority' | 'alphabetical';
 
-	let { tasks: initialTasks, projectId }: Props = $props();
+	let { tasks: initialTasks, projectId, deleteForm }: Props = $props();
 
 	let updatingTaskId = $state<string | null>(null);
 
@@ -430,7 +433,7 @@
 											data-status={task.status}
 											animate:flip={{ duration: isMobile ? 100 : 200 }}
 										>
-											<TaskCard {task} {projectId} />
+											<TaskCard {task} {projectId} {deleteForm} />
 										</div>
 									{/each}
 								{:else}

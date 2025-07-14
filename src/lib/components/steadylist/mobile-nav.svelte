@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { cn } from '$lib/utils';
 	import { Button } from '$lib/components/ui/button';
-	import { LayoutDashboard, FolderKanban } from '@lucide/svelte';
+	import { LayoutDashboard, FolderKanban, Heart } from '@lucide/svelte';
 
 	const pathname = $derived($page.url.pathname);
 
@@ -18,6 +18,12 @@
 			label: 'Projects',
 			icon: FolderKanban,
 			active: pathname === '/projects' || pathname.startsWith('/projects/')
+		},
+		{
+			href: '/promises',
+			label: 'Promises',
+			icon: Heart,
+			active: pathname === '/promises' || pathname.startsWith('/promises/')
 		}
 	]);
 </script>

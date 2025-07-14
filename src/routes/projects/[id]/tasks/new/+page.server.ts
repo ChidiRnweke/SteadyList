@@ -42,13 +42,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 export const actions: Actions = {
 	default: async ({ params, request }) => {
 		const form = await superValidate(request, zod(taskSchema));
-
 		if (!form.valid) {
 			return fail(400, { form });
 		}
 
 		try {
-			const task = await createTask({
+			await createTask({
 				projectId: params.id,
 				title: form.data.title,
 				description: form.data.description,
@@ -57,12 +56,11 @@ export const actions: Actions = {
 				status: form.data.status,
 				reminder: form.data.reminder
 			});
-
-			throw redirect(303, `/projects/${params.id}/tasks/${task.id}`);
 		} catch (error) {
 			if (error instanceof Response) throw error;
 			console.error('Error creating task:', error);
 			return fail(500, { form });
 		}
+		return redirect(303, `/projects/${params.id}`);
 	}
 };

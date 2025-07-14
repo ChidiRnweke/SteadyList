@@ -1,6 +1,15 @@
-import { createTask } from '$lib/tasks';
-import { redirect } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import { createTask, deleteTask } from '$lib/tasks';
+import { redirect, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { superValidate } from 'sveltekit-superforms';
+import { zod } from 'sveltekit-superforms/adapters';
+import { deleteTaskSchema } from '$lib/schemas/delete-schema';
+
+export const load: PageServerLoad = async () => {
+	return {
+		deleteForm: await superValidate(zod(deleteTaskSchema))
+	};
+};
 
 export const actions: Actions = {
 	default: async ({ request, params }) => {
@@ -25,6 +34,25 @@ export const actions: Actions = {
 			reminder,
 			projectId: params.id
 		});
+
+		throw redirect(302, `/projects/${params.id}`);
+	},
+
+	delete: async ({ request, params }) => {
+		const form = await superValidate(request, zod(deleteTaskSchema));
+
+		if (!form.valid) {
+			return fail(400, { form });
+		}
+
+		const success = await deleteTask(form.data.taskId);
+
+		if (!success) {
+			return fail(404, {
+				form,
+				message: 'Task not found or failed to delete'
+			});
+		}
 
 		throw redirect(302, `/projects/${params.id}`);
 	}

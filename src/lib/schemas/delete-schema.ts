@@ -5,3 +5,9 @@ export const deleteProjectSchema = z.object({
 });
 
 export type DeleteProjectSchema = typeof deleteProjectSchema;
+
+export const deleteTaskSchema = z.object({
+	taskId: z.string().min(1, 'Task ID is required')
+});
+
+export type DeleteTaskSchema = typeof deleteTaskSchema;

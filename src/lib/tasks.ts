@@ -234,3 +234,25 @@ export async function getDeletedTasks(): Promise<
 		projectDeleted: task.project.deleted
 	}));
 }
+
+// Hard delete a task (permanently remove from database)
+export async function deleteTask(id: string): Promise<boolean> {
+	try {
+		const task = await prisma.task.findUnique({
+			where: { id }
+		});
+
+		if (!task) {
+			return false;
+		}
+
+		await prisma.task.delete({
+			where: { id }
+		});
+
+		return true;
+	} catch (error) {
+		console.error('Error deleting task:', error);
+		return false;
+	}
+}

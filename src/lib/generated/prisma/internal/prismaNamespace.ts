@@ -398,7 +398,8 @@ export const ModelName = {
   Project: 'Project',
   Task: 'Task',
   Note: 'Note',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  Promise: 'Promise'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -414,7 +415,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "project" | "task" | "note" | "notification"
+    modelProps: "user" | "project" | "task" | "note" | "notification" | "promise"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -788,6 +789,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Promise: {
+      payload: Prisma.$PromisePayload<ExtArgs>
+      fields: Prisma.PromiseFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PromiseFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PromiseFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        findFirst: {
+          args: Prisma.PromiseFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PromiseFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        findMany: {
+          args: Prisma.PromiseFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>[]
+        }
+        create: {
+          args: Prisma.PromiseCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        createMany: {
+          args: Prisma.PromiseCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PromiseCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>[]
+        }
+        delete: {
+          args: Prisma.PromiseDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        update: {
+          args: Prisma.PromiseUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        deleteMany: {
+          args: Prisma.PromiseDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PromiseUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PromiseUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>[]
+        }
+        upsert: {
+          args: Prisma.PromiseUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PromisePayload>
+        }
+        aggregate: {
+          args: Prisma.PromiseAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePromise>
+        }
+        groupBy: {
+          args: Prisma.PromiseGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromiseGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PromiseCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PromiseCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -894,6 +969,21 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const PromiseScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  promiseTo: 'promiseTo',
+  dueDate: 'dueDate',
+  completed: 'completed',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deleted: 'deleted',
+  userId: 'userId'
+} as const
+
+export type PromiseScalarFieldEnum = (typeof PromiseScalarFieldEnum)[keyof typeof PromiseScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1025,6 +1115,7 @@ export type GlobalOmitConfig = {
   task?: Prisma.TaskOmit
   note?: Prisma.NoteOmit
   notification?: Prisma.NotificationOmit
+  promise?: Prisma.PromiseOmit
 }
 
 /* Types for Logging */

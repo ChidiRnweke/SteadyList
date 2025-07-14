@@ -5,9 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/lib/generated/prisma"
-
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -23,6 +21,7 @@ model User {
   projects      Project[]
   tasks         Task[]
   notes         Note[]
+  promises      Promise[]
   notifications Notification[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -84,4 +83,17 @@ model Notification {
   task      Task?    @relation(fields: [taskId], references: [id])
   taskId    String
   projectId String
+}
+
+model Promise {
+  id          String    @id @default(uuid())
+  title       String
+  promiseTo   String?   // Optional person the promise was made to
+  dueDate     DateTime? // Optional due date
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deleted     Boolean   @default(false)
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
 }

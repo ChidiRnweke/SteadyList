@@ -66,5 +66,10 @@ export type Note = Prisma.NoteModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model Promise
+ * 
+ */
+export type Promise = Prisma.PromiseModel
 
 

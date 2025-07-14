@@ -4,6 +4,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import * as Form from '$lib/components/ui/form';
 	import { Calendar, Edit, MoreHorizontal, Trash2, Bell, Check, X } from '@lucide/svelte';
 	import {
 		DropdownMenu,
@@ -14,13 +15,28 @@
 	import type { Task } from '$lib/types';
 	import { formatDate } from 'date-fns';
 	import { toast } from 'svelte-sonner';
+	import { superForm, type Infer, type SuperValidated } from 'sveltekit-superforms';
+	import { deleteTaskSchema, type DeleteTaskSchema } from '$lib/schemas/delete-schema';
+	import { zodClient } from 'sveltekit-superforms/adapters';
 
 	interface Props {
 		task: Task;
 		projectId: string;
+		deleteForm: SuperValidated<Infer<DeleteTaskSchema>>;
 	}
 
-	let { task, projectId }: Props = $props();
+	let { task, projectId, deleteForm }: Props = $props();
+
+	const form = superForm(deleteForm, {
+		validators: zodClient(deleteTaskSchema)
+	});
+
+	const { form: formData, enhance } = form;
+
+	// Set the taskId for this specific task
+	$effect(() => {
+		$formData.taskId = task.id;
+	});
 
 	let busy = $state(false);
 
@@ -57,24 +73,6 @@
 	const isOverdue = $derived(
 		task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done'
 	);
-
-	const handleDelete = async () => {
-		busy = true;
-		try {
-			const response = await fetch(`/projects/${projectId}/tasks/${task.id}`, {
-				method: 'DELETE'
-			});
-
-			if (response.ok) {
-				// Handle successful deletion (e.g., reload page or update parent state)
-				window.location.reload();
-			}
-		} catch (error) {
-			console.error('Failed to delete task:', error);
-		} finally {
-			busy = false;
-		}
-	};
 
 	// Generic function to update any task field
 	const updateTaskField = async (field: string, value: any) => {
@@ -228,9 +226,25 @@
 						</a>
 					</DropdownMenuItem>
 
-					<DropdownMenuItem class="text-destructive" onclick={handleDelete} disabled={busy}>
-						<Trash2 class="mr-2 h-4 w-4" />
-						{busy ? 'Deleting...' : 'Delete'}
+					<DropdownMenuItem class="text-destructive p-0">
+						<form method="POST" action="/projects/{projectId}?/delete" use:enhance class="w-full">
+							<Form.Field {form} name="taskId">
+								<Form.Control>
+									{#snippet children({ props })}
+										<input {...props} type="hidden" bind:value={$formData.taskId} />
+									{/snippet}
+								</Form.Control>
+							</Form.Field>
+							<Form.Button
+								type="submit"
+								variant="ghost"
+								class="text-destructive hover:text-destructive flex w-full items-center justify-start px-2 py-1.5 text-left"
+								disabled={busy}
+							>
+								<Trash2 class="mr-2 h-4 w-4" />
+								{busy ? 'Deleting...' : 'Delete'}
+							</Form.Button>
+						</form>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
