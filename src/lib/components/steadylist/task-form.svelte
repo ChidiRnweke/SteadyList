@@ -32,13 +32,7 @@
 
 	const form = superForm(data.form, {
 		validators: zodClient(taskSchema),
-		onUpdated: ({ form: f }) => {
-			if (f.valid) {
-				toast.success('Task created successfully!');
-			} else {
-				toast.error('Please fix the errors in the form');
-			}
-		}
+		id: 'task-form'
 	});
 
 	const { form: formData, enhance } = form;
@@ -86,7 +80,12 @@
 			<Form.Control>
 				{#snippet children({ props })}
 					<Form.Label>Task Title</Form.Label>
-					<Input {...props} placeholder="Enter task title" bind:value={$formData.title} />
+					<Input
+						{...props}
+						placeholder="Enter task title"
+						bind:value={$formData.title}
+						name={props.name}
+					/>
 				{/snippet}
 			</Form.Control>
 			<Form.FieldErrors />
@@ -102,6 +101,7 @@
 						placeholder="Enter task description (optional)"
 						class="min-h-[100px] resize-none"
 						bind:value={$formData.description}
+						name={props.name}
 					/>
 				{/snippet}
 			</Form.Control>
@@ -126,7 +126,11 @@
 							<Calendar class="ml-auto h-4 w-4 opacity-50" />
 						</PopoverTrigger>
 						<PopoverContent class="w-auto p-0" align="start">
-							<CalendarComponent bind:value={calendarValue} class="rounded-md border" />
+							<CalendarComponent
+								bind:value={calendarValue}
+								class="rounded-md border"
+								name={props.name}
+							/>
 						</PopoverContent>
 					</Popover>
 				{/snippet}
@@ -140,7 +144,7 @@
 			<Form.Control>
 				{#snippet children({ props })}
 					<Form.Label>Priority</Form.Label>
-					<Select type="single" bind:value={$formData.priority}>
+					<Select type="single" bind:value={$formData.priority} name={props.name}>
 						<SelectTrigger {...props} class="w-full">
 							{$formData.priority
 								? $formData.priority.charAt(0).toUpperCase() + $formData.priority.slice(1)
@@ -164,7 +168,7 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Status</Form.Label>
-						<Select type="single" bind:value={$formData.status}>
+						<Select type="single" bind:value={$formData.status} name={props.name}>
 							<SelectTrigger {...props} class="w-full">
 								{$formData.status ? getStatusLabel($formData.status) : 'Select status'}
 							</SelectTrigger>
@@ -207,7 +211,7 @@
 					{#snippet children({ props })}
 						<Form.Label>Set Reminder</Form.Label>
 						<div class="flex items-center gap-2 pt-2">
-							<Switch {...props} bind:checked={$formData.reminder} />
+							<Switch {...props} bind:checked={$formData.reminder} name={props.name} />
 							<div class="text-muted-foreground flex items-center gap-1 text-sm">
 								<Bell class="h-4 w-4" />
 								Remind me about this task

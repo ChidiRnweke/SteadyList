@@ -49,13 +49,27 @@
 
 	let tasks = $state<Task[]>([]);
 
-	// State for tracking drag operations
+	let optimisticallyDeletedTasks = $state<Set<string>>(new Set());
+
 	let dragState = $state<{ [columnId: string]: Task[] } | null>(null);
 
-	// Sync with initial tasks
 	$effect(() => {
 		tasks = [...initialTasks];
 	});
+
+	// Handle optimistic delete
+	const handleOptimisticDelete = (taskId: string) => {
+		optimisticallyDeletedTasks.add(taskId);
+		// Trigger reactivity
+		optimisticallyDeletedTasks = new Set(optimisticallyDeletedTasks);
+	};
+
+	// Handle delete rollback (if needed)
+	const handleDeleteRollback = (taskId: string) => {
+		optimisticallyDeletedTasks.delete(taskId);
+		// Trigger reactivity
+		optimisticallyDeletedTasks = new Set(optimisticallyDeletedTasks);
+	};
 
 	// Compute the final task list
 	const currentTasks = $derived(() => {
@@ -79,7 +93,9 @@
 
 	// Derived state using $derived
 	const filteredAndSortedTasks = $derived.by(() => {
-		let result = currentTasks().filter((task) => !task.deleted);
+		let result = currentTasks()
+			.filter((task) => !task.deleted)
+			.filter((task) => !optimisticallyDeletedTasks.has(task.id)); // Filter out optimistically deleted tasks
 
 		if (searchQuery) {
 			const query = searchQuery.toLowerCase();
@@ -433,7 +449,7 @@
 											data-status={task.status}
 											animate:flip={{ duration: isMobile ? 100 : 200 }}
 										>
-											<TaskCard {task} {projectId} {deleteForm} />
+											<TaskCard {task} {projectId} {deleteForm} onDelete={handleOptimisticDelete} />
 										</div>
 									{/each}
 								{:else}

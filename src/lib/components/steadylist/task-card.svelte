@@ -23,12 +23,34 @@
 		task: Task;
 		projectId: string;
 		deleteForm: SuperValidated<Infer<DeleteTaskSchema>>;
+		onDelete?: (taskId: string) => void;
 	}
 
-	let { task, projectId, deleteForm }: Props = $props();
+	let { task, projectId, deleteForm, onDelete }: Props = $props();
 
 	const form = superForm(deleteForm, {
-		validators: zodClient(deleteTaskSchema)
+		validators: zodClient(deleteTaskSchema),
+		onSubmit: () => {
+			// Call the parent's optimistic delete handler
+			onDelete?.(task.id);
+			busy = true;
+		},
+		onResult: ({ result }) => {
+			busy = false;
+
+			if (result.type === 'redirect') {
+				// Success - task is actually deleted
+				toast.success('Task deleted successfully');
+			} else if (result.type === 'failure') {
+				// Failed - we need to rollback, but this should be handled by parent
+				toast.error('Failed to delete task');
+			}
+		},
+		onError: () => {
+			// Error - rollback should be handled by parent
+			busy = false;
+			toast.error('Failed to delete task');
+		}
 	});
 
 	const { form: formData, enhance } = form;
