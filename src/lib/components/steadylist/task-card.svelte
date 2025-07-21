@@ -28,7 +28,10 @@
 
 	let { task, projectId, deleteForm, onDelete }: Props = $props();
 
+	const formId = `delete-task-form-${task.id}`;
+
 	const form = superForm(deleteForm, {
+		id: formId,
 		validators: zodClient(deleteTaskSchema),
 		onSubmit: () => {
 			// Call the parent's optimistic delete handler
