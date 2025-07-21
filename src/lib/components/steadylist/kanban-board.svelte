@@ -157,7 +157,9 @@
 				borderRadius: '8px'
 			},
 			type: 'task',
-			dropFromOthersDisabled: false
+			dropFromOthersDisabled: false,
+			dragDisabled: false,
+			delayTouchStart: isMobile ? 120 : false
 		};
 	}
 
