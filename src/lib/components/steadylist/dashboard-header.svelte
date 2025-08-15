@@ -15,8 +15,9 @@
 	import MainNav from '$lib/components/steadylist/main-nav.svelte';
 	import MobileNav from '$lib/components/steadylist/mobile-nav.svelte';
 	import { onMount } from 'svelte';
-	import { auth } from '$lib/firebaseClient';
-	import { signOut } from 'firebase/auth';
+	import { signOutUser } from '$lib/firebaseClient';
+	import { user } from '$lib/stores/auth';
+	import { toast } from 'svelte-sonner';
 
 	onMount(async () => {
 		const response = await fetch('/trash', {
@@ -30,37 +31,34 @@
 		deletedItems.deletedProjects = data.deletedProjects || [];
 	});
 
-	type User = {
-		name: string;
-		email: string;
-		image: string | null;
-	};
-
 	// Reactive state
-	let user = $state<User | null>(null);
 	let deletedItems = $state({
 		deletedProjects: [],
 		deletedTasks: []
 	});
 
-	// Mock user data - replace with your actual auth store
-	$effect(() => {
-		// This would typically come from your auth store
-		user = {
-			name: 'User Name',
-			email: 'user@example.com',
-			image: null
-		};
-	});
+	let isSigningOut = $state(false);
 
 	const handleSignOut = async () => {
+		if (isSigningOut) return;
+
+		isSigningOut = true;
 		try {
-			await signOut(auth);
+			await signOutUser();
+			toast.success('Successfully signed out');
 			goto('/login');
 		} catch (error) {
 			console.error('Sign out failed:', error);
+			toast.error('Failed to sign out');
+		} finally {
+			isSigningOut = false;
 		}
 	};
+
+	// Derived values from the auth store
+	const displayName = $derived($user?.displayName || 'User');
+	const email = $derived($user?.email || '');
+	const photoURL = $derived($user?.photoURL || '');
 </script>
 
 <header class="flex items-center justify-between py-4">
@@ -102,25 +100,22 @@
 				class="ring-offset-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring relative inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
 			>
 				<Avatar>
-					<AvatarImage
-						src={user?.image || '/placeholder.svg?height=40&width=40'}
-						alt={user?.name || 'User'}
-					/>
+					<AvatarImage src={photoURL || '/placeholder.svg?height=40&width=40'} alt={displayName} />
 					<AvatarFallback class="bg-primary/10 text-primary">
-						{user?.name?.charAt(0) || 'U'}
+						{displayName.charAt(0)}
 					</AvatarFallback>
 				</Avatar>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
 				<DropdownMenuItem class="font-medium">
-					{user?.name || 'User'}
+					{displayName}
 				</DropdownMenuItem>
 				<DropdownMenuItem class="text-muted-foreground text-sm">
-					{user?.email || 'user@example.com'}
+					{email}
 				</DropdownMenuItem>
-				<DropdownMenuItem onclick={handleSignOut}>
+				<DropdownMenuItem onclick={handleSignOut} disabled={isSigningOut}>
 					<LogOut class="mr-2 h-4 w-4" />
-					Sign out
+					{isSigningOut ? 'Signing out...' : 'Sign out'}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

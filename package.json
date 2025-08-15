@@ -66,6 +66,7 @@
 		"@prisma/client": "^6.11.1",
 		"date-fns": "^4.1.0",
 		"firebase": "^11.10.0",
+		"firebase-admin": "^13.4.0",
 		"prisma": "^6.11.1",
 		"svelte-dnd-action": "^0.9.63",
 		"svelte-motion": "^0.12.2",

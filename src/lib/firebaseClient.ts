@@ -1,6 +1,6 @@
 // firebaseClient.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { browserLocalPersistence, setPersistence } from 'firebase/auth';
 const firebaseConfig = {
 	apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,4 +20,40 @@ export const getFirebaseApp = (): FirebaseApp => {
 };
 
 export const auth = getAuth(getFirebaseApp());
-await setPersistence(auth, browserLocalPersistence);
+
+// Initialize auth persistence
+export const initializeAuth = async () => {
+	try {
+		await setPersistence(auth, browserLocalPersistence);
+	} catch (error) {
+		console.error('Failed to set auth persistence:', error);
+	}
+};
+
+// Google Auth Provider
+export const googleProvider = new GoogleAuthProvider();
+
+// Auth functions
+export const signInWithGoogle = async () => {
+	try {
+		const result = await signInWithPopup(auth, googleProvider);
+		return result.user;
+	} catch (error) {
+		console.error('Error signing in with Google:', error);
+		throw error;
+	}
+};
+
+export const signOutUser = async () => {
+	try {
+		await signOut(auth);
+	} catch (error) {
+		console.error('Error signing out:', error);
+		throw error;
+	}
+};
+
+// Auth state observer
+export const onAuthStateChange = (callback: (user: User | null) => void) => {
+	return onAuthStateChanged(auth, callback);
+};
