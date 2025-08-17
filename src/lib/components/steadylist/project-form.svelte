@@ -38,7 +38,7 @@
 </script>
 
 <Card class="mx-auto max-w-2xl border-slate-200 p-6 shadow-sm">
-	<form method="post" use:enhance class="space-y-6" action="/projects">
+	<form method="post" use:enhance class="space-y-6" action="/projects/new">
 		<Form.Field {form} name="name">
 			<Form.Control>
 				{#snippet children({ props })}

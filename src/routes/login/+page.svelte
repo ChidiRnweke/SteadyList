@@ -2,48 +2,69 @@
 	import { user } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+
+	import {
+		Card,
+		CardContent,
+		CardHeader,
+		CardTitle,
+		CardDescription,
+		CardFooter
+	} from '$lib/components/ui/card';
 	import LoginButton from '$lib/components/auth/LoginButton.svelte';
 
-	// Redirect if already authenticated
 	$effect(() => {
 		if ($user) {
 			const redirectTo = $page.url.searchParams.get('redirect') || '/';
 			goto(redirectTo);
 		}
 	});
+
+	const glassCard =
+		'border border-white/25 bg-white/40 dark:bg-zinc-900/30 backdrop-blur-md supports-[backdrop-filter]:bg-white/20 shadow-[0_0_1px_rgba(255,255,255,0.6)_inset,0_10px_30px_-12px_rgba(0,0,0,0.25)]';
 </script>
 
 <svelte:head>
 	<title>Sign In - SteadyList</title>
 </svelte:head>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-	<div class="w-full max-w-md space-y-8">
-		<div>
-			<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-				<svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-					/>
-				</svg>
-			</div>
-			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to SteadyList</h2>
-			<p class="mt-2 text-center text-sm text-gray-600">
-				Manage your projects and tasks efficiently
+<div>
+	<!-- Main -->
+	<div
+		class="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 md:grid-cols-2 lg:px-8"
+	>
+		<!-- Left: minimal headline -->
+		<section class="order-2 md:order-1">
+			<h1
+				class="bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent sm:text-5xl dark:from-zinc-100 dark:to-zinc-400"
+			>
+				Get started instantly
+			</h1>
+			<p class="mt-3 max-w-lg text-sm text-zinc-600 dark:text-zinc-300">
+				Jump straight into your workspace.
 			</p>
-		</div>
-		<div class="mt-8 space-y-6">
-			<div>
-				<LoginButton />
-			</div>
-			<div class="text-center">
-				<p class="text-xs text-gray-500">
-					By signing in, you agree to our Terms of Service and Privacy Policy
-				</p>
-			</div>
-		</div>
+		</section>
+
+		<!-- Right: card -->
+		<section class="order-1 md:order-2">
+			<Card class={glassCard}>
+				<CardHeader>
+					<CardTitle>Get started instantly</CardTitle>
+					<CardDescription>Sign in to continue.</CardDescription>
+				</CardHeader>
+				<CardContent class="space-y-4">
+					<LoginButton />
+
+					<p class="text-xs text-zinc-600 dark:text-zinc-400">
+						By continuing you agree to our <a class="underline" href="/#">Terms</a> and
+						<a class="underline" href="/#">Privacy Policy</a>.
+					</p>
+				</CardContent>
+				<CardFooter class="justify-between text-xs text-zinc-600 dark:text-zinc-400">
+					<span>Problems signing in? <a class="underline" href="#help">Get help</a></span>
+					<span>v1.0</span>
+				</CardFooter>
+			</Card>
+		</section>
 	</div>
 </div>

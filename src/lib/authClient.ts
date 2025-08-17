@@ -48,7 +48,6 @@ class FirebaseAuthClient implements AuthService {
 	private ensureApp() {
 		if (!this.app) {
 			const config = { ...firebaseConfig } as FirebaseOptions;
-			if (browser && import.meta.env.DEV) delete config.authDomain;
 			this.app = getApps().length ? getApps()[0] : initializeApp(config);
 		}
 		return this.app;
@@ -62,7 +61,6 @@ class FirebaseAuthClient implements AuthService {
 		return this.auth!;
 	}
 
-	// Utility to check whether the configured authDomain provides the init.json expected by the SDK
 	private async canUseRedirect(): Promise<boolean> {
 		if (!browser) return false;
 		if (import.meta.env.DEV || !firebaseConfig.authDomain) return false;

@@ -13,17 +13,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const authCookie = event.cookies.get('firebase-token') || null;
 			const token = await authVerifier.verifyAuthentication(authCookie);
 			event.locals.user = authVerifier.extractUser(token);
-			console.log('Authenticated user:', event.locals.user);
 		} catch (error) {
 			console.error('Error verifying authentication:', error);
 			throw redirect(302, '/login');
 		}
-	}
-
-	// If user is authenticated and trying to access login page, redirect to home
-	if (event.locals.user && pathname === '/login') {
-		const redirectTo = event.url.searchParams.get('redirect') || '/';
-		throw redirect(302, redirectTo);
 	}
 
 	const response = await resolve(event);
