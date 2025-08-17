@@ -1,113 +1,115 @@
 import type { Note, CreateNoteInput, UpdateNoteInput } from './types';
 import prisma from './prisma';
 
-// Get all notes
-export async function getAllNotes(): Promise<Note[]> {
-	const notes = await prisma.note.findMany({
-		where: { deleted: false },
-		orderBy: { updatedAt: 'desc' }
-	});
-
-	return notes.map((note) => ({
-		...note,
-		createdAt: note.createdAt.toISOString(),
-		updatedAt: note.updatedAt.toISOString()
-	}));
+// Interface for notes service
+export interface INotesService {
+	getAllNotes(): Promise<Note[]>;
+	getNoteById(id: string): Promise<Note | null>;
+	getNotesByProject(projectId: string): Promise<Note[]>;
+	createNote(data: CreateNoteInput): Promise<Note>;
+	updateNote(id: string, data: UpdateNoteInput): Promise<Note | null>;
+	softDeleteNote(id: string): Promise<boolean>;
 }
 
-// Get note by ID
-export async function getNoteById(id: string): Promise<Note | null> {
-	const note = await prisma.note.findUnique({
-		where: { id }
-	});
+export class NotesService implements INotesService {
+	constructor(private userId: string) {}
 
-	return note
-		? {
-				...note,
-				createdAt: note.createdAt.toISOString(),
-				updatedAt: note.updatedAt.toISOString()
+	async getAllNotes(): Promise<Note[]> {
+		const notes = await prisma.note.findMany({
+			where: { deleted: false, userId: this.userId },
+			orderBy: { updatedAt: 'desc' }
+		});
+
+		return notes.map((note) => ({
+			...note,
+			createdAt: note.createdAt.toISOString(),
+			updatedAt: note.updatedAt.toISOString()
+		}));
+	}
+
+	async getNoteById(id: string): Promise<Note | null> {
+		const note = await prisma.note.findFirst({
+			where: { id, userId: this.userId }
+		});
+
+		return note
+			? {
+					...note,
+					createdAt: note.createdAt.toISOString(),
+					updatedAt: note.updatedAt.toISOString()
+				}
+			: null;
+	}
+
+	async getNotesByProject(projectId: string): Promise<Note[]> {
+		const notes = await prisma.note.findMany({
+			where: {
+				projectId,
+				deleted: false,
+				userId: this.userId
+			},
+			orderBy: { updatedAt: 'desc' }
+		});
+
+		return notes.map((note) => ({
+			...note,
+			createdAt: note.createdAt.toISOString(),
+			updatedAt: note.updatedAt.toISOString()
+		}));
+	}
+
+	async createNote(data: CreateNoteInput): Promise<Note> {
+		const newNote = await prisma.note.create({
+			data: {
+				title: data.title,
+				content: data.content,
+				projectId: data.projectId,
+				userId: this.userId,
+				deleted: false,
+				shareable: data.shareable || false
 			}
-		: null;
-}
+		});
 
-// Get notes by project ID
-export async function getNotesByProject(projectId: string): Promise<Note[]> {
-	const notes = await prisma.note.findMany({
-		where: {
-			projectId,
-			deleted: false
-		},
-		orderBy: { updatedAt: 'desc' }
-	});
-
-	return notes.map((note) => ({
-		...note,
-		createdAt: note.createdAt.toISOString(),
-		updatedAt: note.updatedAt.toISOString()
-	}));
-}
-
-// Create a new note
-export async function createNote(data: CreateNoteInput): Promise<Note> {
-	const newNote = await prisma.note.create({
-		data: {
-			title: data.title,
-			content: data.content,
-			projectId: data.projectId,
-			userId: 'user-1', // Mock user ID, will be replaced with actual auth
-			deleted: false,
-			shareable: data.shareable || false
-		}
-	});
-
-	return {
-		...newNote,
-		createdAt: newNote.createdAt.toISOString(),
-		updatedAt: newNote.updatedAt.toISOString()
-	};
-}
-
-// Update a note
-export async function updateNote(id: string, data: UpdateNoteInput): Promise<Note | null> {
-	const note = await prisma.note.findUnique({
-		where: { id }
-	});
-
-	if (!note) {
-		return null;
+		return {
+			...newNote,
+			createdAt: newNote.createdAt.toISOString(),
+			updatedAt: newNote.updatedAt.toISOString()
+		};
 	}
 
-	const updatedNote = await prisma.note.update({
-		where: { id },
-		data: {
-			title: data.title,
-			content: data.content,
-			projectId: data.projectId,
-			shareable: data.shareable !== undefined ? data.shareable : note.shareable
+	async updateNote(id: string, data: UpdateNoteInput): Promise<Note | null> {
+		const note = await prisma.note.findFirst({ where: { id, userId: this.userId } });
+
+		if (!note) {
+			return null;
 		}
-	});
 
-	return {
-		...updatedNote,
-		createdAt: updatedNote.createdAt.toISOString(),
-		updatedAt: updatedNote.updatedAt.toISOString()
-	};
-}
+		const updatedNote = await prisma.note.update({
+			where: { id },
+			data: {
+				title: data.title,
+				content: data.content,
+				projectId: data.projectId,
+				shareable: data.shareable !== undefined ? data.shareable : note.shareable
+			}
+		});
 
-// Soft delete a note
-export async function softDeleteNote(id: string): Promise<boolean> {
-	const note = await prisma.note.findUnique({
-		where: { id }
-	});
-
-	if (!note) {
-		return false;
+		return {
+			...updatedNote,
+			createdAt: updatedNote.createdAt.toISOString(),
+			updatedAt: updatedNote.updatedAt.toISOString()
+		};
 	}
 
-	await prisma.note.update({
-		where: { id },
-		data: { deleted: true }
-	});
+	async softDeleteNote(id: string): Promise<boolean> {
+		const note = await prisma.note.findFirst({ where: { id, userId: this.userId } });
 
-	return true;
+		if (!note) {
+			return false;
+		}
+
+		await prisma.note.update({ where: { id }, data: { deleted: true } });
+
+		return true;
+	}
 }

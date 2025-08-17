@@ -1,245 +1,230 @@
 import type { Project, CreateProjectInput, UpdateProjectInput } from './types';
 import prisma from './prisma';
 
-// Get all projects
-export async function getAllProjects(): Promise<Project[]> {
-	const projects = await prisma.project.findMany({
-		where: { deleted: false },
-		orderBy: { updatedAt: 'desc' },
-		include: {
-			_count: {
-				select: {
-					tasks: {
-						where: {
-							deleted: false
+export interface IProjectsService {
+	getAllProjects(): Promise<Project[]>;
+	getProjectById(id: string): Promise<Project | null>;
+	createProject(data: CreateProjectInput): Promise<Project>;
+	updateProject(id: string, data: UpdateProjectInput): Promise<Project | null>;
+	softDeleteProject(id: string): Promise<boolean>;
+	restoreProject(id: string): Promise<boolean>;
+	getDeletedProjects(): Promise<Project[]>;
+}
+
+export class ProjectsService implements IProjectsService {
+	constructor(private userId: string) {}
+
+	async getAllProjects(): Promise<Project[]> {
+		const projects = await prisma.project.findMany({
+			where: { deleted: false, userId: this.userId },
+			orderBy: { updatedAt: 'desc' },
+			include: {
+				_count: {
+					select: {
+						tasks: {
+							where: {
+								deleted: false
+							}
 						}
 					}
-				}
-			},
-			tasks: {
-				where: {
-					deleted: false,
-					status: 'done'
 				},
-				select: {
-					id: true
-				}
-			}
-		}
-	});
-
-	return projects.map((project) => ({
-		...project,
-		taskCount: project._count.tasks,
-		completedTaskCount: project.tasks.length,
-		blockedTaskCount: 0 // We'll need to add a separate query for this
-	})) as unknown as Project[];
-}
-
-// Get project by ID
-export async function getProjectById(id: string): Promise<Project | null> {
-	const project = await prisma.project.findUnique({
-		where: { id },
-		include: {
-			_count: {
-				select: {
-					tasks: {
-						where: {
-							deleted: false
-						}
+				tasks: {
+					where: {
+						deleted: false,
+						status: 'done'
+					},
+					select: {
+						id: true
 					}
 				}
-			},
-			tasks: {
-				where: {
-					deleted: false,
-					status: 'done'
+			}
+		});
+
+		return projects.map((project) => ({
+			...project,
+			taskCount: project._count.tasks,
+			completedTaskCount: project.tasks.length,
+			blockedTaskCount: 0
+		})) as unknown as Project[];
+	}
+
+	async getProjectById(id: string): Promise<Project | null> {
+		const project = await prisma.project.findFirst({
+			where: { id, userId: this.userId },
+			include: {
+				_count: {
+					select: {
+						tasks: {
+							where: {
+								deleted: false
+							}
+						}
+					}
 				},
-				select: {
-					id: true
-				}
-			}
-		}
-	});
-
-	if (!project) {
-		return null;
-	}
-
-	// Get blocked tasks count
-	const blockedTasks = await prisma.task.count({
-		where: {
-			projectId: id,
-			deleted: false,
-			status: 'blocked'
-		}
-	});
-
-	return {
-		...project,
-		description: project.description || undefined,
-		createdAt: project.createdAt.toISOString(),
-		updatedAt: project.updatedAt.toISOString(),
-		taskCount: project._count.tasks,
-		completedTaskCount: project.tasks.length,
-		blockedTaskCount: blockedTasks
-	};
-}
-
-// Create a new project
-export async function createProject(data: CreateProjectInput): Promise<Project> {
-	const newProject = await prisma.project.create({
-		data: {
-			name: data.name,
-			description: data.description || '',
-			userId: 'user-1', // Mock user ID
-			deleted: false
-		}
-	});
-
-	return {
-		...newProject,
-		taskCount: 0,
-		description: newProject.description || undefined,
-		completedTaskCount: 0,
-		blockedTaskCount: 0,
-		createdAt: newProject.createdAt.toISOString(),
-		updatedAt: newProject.updatedAt.toISOString()
-	};
-}
-
-// Update a project
-export async function updateProject(id: string, data: UpdateProjectInput): Promise<Project | null> {
-	const project = await prisma.project.findUnique({
-		where: { id }
-	});
-
-	if (!project) {
-		return null;
-	}
-
-	const updatedProject = await prisma.project.update({
-		where: { id },
-		data: {
-			name: data.name,
-			description: data.description
-		},
-		include: {
-			_count: {
-				select: {
-					tasks: {
-						where: {
-							deleted: false
-						}
+				tasks: {
+					where: {
+						deleted: false,
+						status: 'done'
+					},
+					select: {
+						id: true
 					}
 				}
+			}
+		});
+
+		if (!project) {
+			return null;
+		}
+
+		const blockedTasks = await prisma.task.count({
+			where: {
+				projectId: id,
+				deleted: false,
+				status: 'blocked'
+			}
+		});
+
+		return {
+			...project,
+			description: project.description || undefined,
+			createdAt: project.createdAt.toISOString(),
+			updatedAt: project.updatedAt.toISOString(),
+			taskCount: project._count.tasks,
+			completedTaskCount: project.tasks.length,
+			blockedTaskCount: blockedTasks
+		};
+	}
+
+	async createProject(data: CreateProjectInput): Promise<Project> {
+		const newProject = await prisma.project.create({
+			data: {
+				name: data.name,
+				description: data.description || '',
+				userId: this.userId,
+				deleted: false
+			}
+		});
+
+		return {
+			...newProject,
+			taskCount: 0,
+			description: newProject.description || undefined,
+			completedTaskCount: 0,
+			blockedTaskCount: 0,
+			createdAt: newProject.createdAt.toISOString(),
+			updatedAt: newProject.updatedAt.toISOString()
+		};
+	}
+
+	async updateProject(id: string, data: UpdateProjectInput): Promise<Project | null> {
+		const project = await prisma.project.findFirst({ where: { id, userId: this.userId } });
+
+		if (!project) {
+			return null;
+		}
+
+		const updatedProject = await prisma.project.update({
+			where: { id },
+			data: {
+				name: data.name,
+				description: data.description
 			},
-			tasks: {
-				where: {
-					deleted: false,
-					status: 'done'
+			include: {
+				_count: {
+					select: {
+						tasks: {
+							where: {
+								deleted: false
+							}
+						}
+					}
 				},
-				select: {
-					id: true
+				tasks: {
+					where: {
+						deleted: false,
+						status: 'done'
+					},
+					select: {
+						id: true
+					}
 				}
 			}
-		}
-	});
+		});
 
-	// Get blocked tasks count
-	const blockedTasks = await prisma.task.count({
-		where: {
-			projectId: id,
-			deleted: false,
-			status: 'blocked'
-		}
-	});
+		const blockedTasks = await prisma.task.count({
+			where: {
+				projectId: id,
+				deleted: false,
+				status: 'blocked'
+			}
+		});
 
-	return {
-		...updatedProject,
-		taskCount: updatedProject._count.tasks,
-		completedTaskCount: updatedProject.tasks.length,
-		blockedTaskCount: blockedTasks,
-		description: updatedProject.description || undefined,
-		createdAt: updatedProject.createdAt.toISOString(),
-		updatedAt: updatedProject.updatedAt.toISOString()
-	};
-}
-
-// Soft delete a project
-export async function softDeleteProject(id: string): Promise<boolean> {
-	const project = await prisma.project.findUnique({
-		where: { id }
-	});
-
-	if (!project) {
-		return false;
+		return {
+			...updatedProject,
+			taskCount: updatedProject._count.tasks,
+			completedTaskCount: updatedProject.tasks.length,
+			blockedTaskCount: blockedTasks,
+			description: updatedProject.description || undefined,
+			createdAt: updatedProject.createdAt.toISOString(),
+			updatedAt: updatedProject.updatedAt.toISOString()
+		};
 	}
 
-	await prisma.project.update({
-		where: { id },
-		data: { deleted: true }
-	});
+	async softDeleteProject(id: string): Promise<boolean> {
+		const project = await prisma.project.findFirst({ where: { id, userId: this.userId } });
 
-	// Also mark all tasks in this project as deleted
-	await prisma.task.updateMany({
-		where: { projectId: id },
-		data: { deleted: true }
-	});
+		if (!project) {
+			return false;
+		}
 
-	return true;
-}
+		await prisma.project.update({ where: { id }, data: { deleted: true } });
 
-// Restore a soft-deleted project
-export async function restoreProject(id: string): Promise<boolean> {
-	const project = await prisma.project.findUnique({
-		where: { id }
-	});
+		await prisma.task.updateMany({ where: { projectId: id }, data: { deleted: true } });
 
-	if (!project) {
-		return false;
+		return true;
 	}
 
-	await prisma.project.update({
-		where: { id },
-		data: { deleted: false }
-	});
+	async restoreProject(id: string): Promise<boolean> {
+		const project = await prisma.project.findFirst({ where: { id, userId: this.userId } });
 
-	// Also restore all tasks that were deleted with this project
-	await prisma.task.updateMany({
-		where: {
-			projectId: id,
-			deleted: true
-		},
-		data: { deleted: false }
-	});
+		if (!project) {
+			return false;
+		}
 
-	return true;
-}
+		await prisma.project.update({ where: { id }, data: { deleted: false } });
 
-// Get all deleted projects
-export async function getDeletedProjects(): Promise<Project[]> {
-	const projects = await prisma.project.findMany({
-		where: { deleted: true },
-		orderBy: { updatedAt: 'desc' },
-		include: {
-			_count: {
-				select: {
-					tasks: {
-						where: {
-							deleted: true
+		await prisma.task.updateMany({
+			where: { projectId: id, deleted: true },
+			data: { deleted: false }
+		});
+
+		return true;
+	}
+
+	async getDeletedProjects(): Promise<Project[]> {
+		const projects = await prisma.project.findMany({
+			where: { deleted: true, userId: this.userId },
+			orderBy: { updatedAt: 'desc' },
+			include: {
+				_count: {
+					select: {
+						tasks: {
+							where: {
+								deleted: true
+							}
 						}
 					}
 				}
 			}
-		}
-	});
+		});
 
-	return projects.map((project) => ({
-		...project,
-		description: project.description || undefined,
-		createdAt: project.createdAt.toISOString(),
-		updatedAt: project.updatedAt.toISOString(),
-		taskCount: project._count.tasks
-	}));
+		return projects.map((project) => ({
+			...project,
+			description: project.description || undefined,
+			createdAt: project.createdAt.toISOString(),
+			updatedAt: project.updatedAt.toISOString(),
+			taskCount: project._count.tasks
+		}));
+	}
 }

@@ -1,86 +1,97 @@
 import type { Notification } from './types';
 import prisma from './prisma';
 
-// Interface for the notification input
-interface NotificationInput {
+export interface NotificationInput {
 	title: string;
 	message: string;
 	taskId: string;
 	projectId: string;
 }
 
-// Get all notifications for a user
-export async function getNotifications(): Promise<Notification[]> {
-	const notifications = await prisma.notification.findMany({
-		orderBy: { createdAt: 'desc' }
-	});
-
-	return notifications.map((notification) => ({
-		...notification,
-		createdAt: notification.createdAt.toISOString()
-	}));
+export interface INotificationsService {
+	getNotifications(): Promise<Notification[]>;
+	markNotificationAsRead(id: string): Promise<boolean>;
+	markAllNotificationsAsRead(): Promise<boolean>;
+	createNotification(data: NotificationInput): Promise<Notification>;
+	deleteNotification(id: string): Promise<boolean>;
 }
 
-// Mark a notification as read
-export async function markNotificationAsRead(id: string): Promise<boolean> {
-	const notification = await prisma.notification.findUnique({
-		where: { id }
-	});
+export class NotificationsService implements INotificationsService {
+	constructor(private userId: string) {}
 
-	if (!notification) {
-		return false;
+	async getNotifications(): Promise<Notification[]> {
+		const notifications = await prisma.notification.findMany({
+			where: { userId: this.userId },
+			orderBy: { createdAt: 'desc' }
+		});
+
+		return notifications.map((notification) => ({
+			...notification,
+			createdAt: notification.createdAt.toISOString()
+		}));
 	}
 
-	await prisma.notification.update({
-		where: { id },
-		data: { read: true }
-	});
+	async markNotificationAsRead(id: string): Promise<boolean> {
+		const notification = await prisma.notification.findFirst({
+			where: { id, userId: this.userId }
+		});
 
-	return true;
-}
+		if (!notification) return false;
 
-// Mark all notifications as read
-export async function markAllNotificationsAsRead(): Promise<boolean> {
-	await prisma.notification.updateMany({
-		where: { read: false },
-		data: { read: true }
-	});
+		await prisma.notification.update({ where: { id }, data: { read: true } });
 
-	return true;
-}
+		return true;
+	}
 
-// Create a notification
-export async function createNotification(data: NotificationInput): Promise<Notification> {
-	const newNotification = await prisma.notification.create({
-		data: {
-			title: data.title,
-			message: data.message,
-			taskId: data.taskId,
-			projectId: data.projectId,
-			userId: 'user-1', // Mock user ID, will be replaced with actual auth
-			read: false
+	async markAllNotificationsAsRead(): Promise<boolean> {
+		await prisma.notification.updateMany({
+			where: { userId: this.userId, read: false },
+			data: { read: true }
+		});
+		return true;
+	}
+
+	async createNotification(data: NotificationInput): Promise<Notification> {
+		const newNotification = await prisma.notification.create({
+			data: {
+				title: data.title,
+				message: data.message,
+				taskId: data.taskId,
+				projectId: data.projectId,
+				userId: this.userId,
+				read: false
+			}
+		});
+
+		return {
+			...newNotification,
+			createdAt: newNotification.createdAt.toISOString()
+		};
+	}
+
+	async deleteNotification(id: string): Promise<boolean> {
+		const notification = await prisma.notification.findFirst({
+			where: { id, userId: this.userId }
+		});
+
+		if (!notification) {
+			return false;
 		}
-	});
 
-	return {
-		...newNotification,
-		createdAt: newNotification.createdAt.toISOString()
-	};
-}
+		await prisma.notification.delete({ where: { id } });
 
-// Delete a notification
-export async function deleteNotification(id: string): Promise<boolean> {
-	const notification = await prisma.notification.findUnique({
-		where: { id }
-	});
-
-	if (!notification) {
-		return false;
+		return true;
 	}
-
-	await prisma.notification.delete({
-		where: { id }
-	});
-
-	return true;
 }
+
+// Legacy function wrappers for backward compatibility (uses a default/mock user id)
+const _defaultUserId_notifs = 'user-1';
+const _notificationsService = new NotificationsService(_defaultUserId_notifs);
+
+export const getNotifications = () => _notificationsService.getNotifications();
+export const markNotificationAsRead = (id: string) =>
+	_notificationsService.markNotificationAsRead(id);
+export const markAllNotificationsAsRead = () => _notificationsService.markAllNotificationsAsRead();
+export const createNotification = (data: NotificationInput) =>
+	_notificationsService.createNotification(data);
+export const deleteNotification = (id: string) => _notificationsService.deleteNotification(id);

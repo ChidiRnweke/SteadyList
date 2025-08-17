@@ -1,12 +1,20 @@
-import { getProjectById, updateProject } from '$lib/projects';
 import type { PageServerLoad, Actions } from './$types';
-import { redirect, fail } from '@sveltejs/kit';
+import { redirect, fail, error } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { projectSchema } from '$lib/schemas/project-schema';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
-	const project = await getProjectById(params.id);
+export const load: PageServerLoad = async ({ params, locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
+	const project = await services.projects.getProjectById(params.id);
 	if (!project) {
 		throw redirect(303, '/projects');
 	}
@@ -27,7 +35,15 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ params, request }) => {
+	default: async ({ params, request, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const form = await superValidate(request, zod(projectSchema));
 		let success;
 		if (!form.valid) {
@@ -35,7 +51,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			success = await updateProject(params.id, {
+			success = await services.projects.updateProject(params.id, {
 				name: form.data.name,
 				description: form.data.description
 			});

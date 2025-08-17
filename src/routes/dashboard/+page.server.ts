@@ -1,9 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getAllProjects } from '$lib/projects';
-import { getAllTasks } from '$lib/tasks';
-import { getNotifications } from '$lib/notifications';
-import { getAllNotes } from '$lib/notes';
-import { getAllPromises } from '$lib/promises';
+import { createServices } from '$lib';
 import type { AuthenticatedUser } from '$lib/server/auth';
 import { error } from '@sveltejs/kit';
 
@@ -13,13 +9,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!user) {
 		error(401, 'Not logged in.');
 	}
+
+	const services = createServices(user.uid);
+
 	try {
 		const [projects, tasks, notes, promises, notifications] = await Promise.all([
-			getAllProjects(),
-			getAllTasks(),
-			getAllNotes(),
-			getAllPromises(),
-			getNotifications()
+			services.projects.getAllProjects(),
+			services.tasks.getAllTasks(),
+			services.notes.getAllNotes(),
+			services.promises.getAllPromises(),
+			services.notifications.getNotifications()
 		]);
 
 		return {

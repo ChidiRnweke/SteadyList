@@ -1,12 +1,21 @@
-import { getAllPromises, createPromise, updatePromise, softDeletePromise } from '$lib/promises';
+import { createServices } from '$lib';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { promiseMadeSchema, updatePromiseMadeSchema } from '$lib/schemas/promise-schema';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
-export const load: PageServerLoad = async () => {
-	const promises = await getAllPromises();
+export const load: PageServerLoad = async ({ locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
+
+	const promises = await services.promises.getAllPromises();
 
 	return {
 		promises,
@@ -17,6 +26,14 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	create: async (event) => {
+		const user: AuthenticatedUser | null = event.locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const form = await superValidate(event, zod(promiseMadeSchema));
 
 		if (!form.valid) {
@@ -24,7 +41,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			await createPromise(form.data);
+			await services.promises.createPromise(form.data);
 			return { form };
 		} catch (error) {
 			console.error('Error creating promise:', error);
@@ -36,6 +53,13 @@ export const actions: Actions = {
 	},
 
 	update: async (event) => {
+		const user: AuthenticatedUser | null = event.locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
 		const form = await superValidate(event, zod(updatePromiseMadeSchema));
 
 		if (!form.valid) {
@@ -43,7 +67,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await updatePromise(form.data.id, form.data);
+			const result = await services.promises.updatePromise(form.data.id, form.data);
 			if (!result) {
 				return fail(404, {
 					form,
@@ -61,6 +85,14 @@ export const actions: Actions = {
 	},
 
 	delete: async (event) => {
+		const user: AuthenticatedUser | null = event.locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const formData = await event.request.formData();
 		const promiseId = formData.get('id') as string;
 
@@ -71,7 +103,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const success = await softDeletePromise(promiseId);
+			const success = await services.promises.softDeletePromise(promiseId);
 			if (!success) {
 				return fail(404, {
 					message: 'Promise not found'

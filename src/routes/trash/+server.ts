@@ -1,12 +1,19 @@
-import { getDeletedProjects } from '../../lib/projects';
-import { getDeletedTasks } from '../../lib/tasks';
-import { json } from '@sveltejs/kit';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
+import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from '@sveltejs/kit';
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
 	try {
-		const deletedProjects = await getDeletedProjects();
-		const deletedTasks = await getDeletedTasks();
+		const deletedProjects = await services.projects.getDeletedProjects();
+		const deletedTasks = await services.tasks.getDeletedTasks();
 
 		return json({
 			deletedProjects,

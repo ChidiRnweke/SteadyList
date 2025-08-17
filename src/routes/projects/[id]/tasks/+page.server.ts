@@ -1,9 +1,10 @@
-import { createTask, deleteTask } from '$lib/tasks';
-import { redirect, fail } from '@sveltejs/kit';
+import { redirect, fail, error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { deleteTaskSchema } from '$lib/schemas/delete-schema';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
 export const load: PageServerLoad = async () => {
 	return {
@@ -12,7 +13,15 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, params }) => {
+	default: async ({ request, params, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const formData = await request.formData();
 		console.log('formData', formData);
 		const title = formData.get('title') as string;
@@ -25,7 +34,7 @@ export const actions: Actions = {
 		// Convert dueDate string to Date object if present
 		const dueDate = dueDateStr ? new Date(dueDateStr) : undefined;
 
-		await createTask({
+		await services.tasks.createTask({
 			title,
 			description,
 			dueDate,
@@ -38,14 +47,22 @@ export const actions: Actions = {
 		throw redirect(302, `/projects/${params.id}`);
 	},
 
-	delete: async ({ request, params }) => {
+	delete: async ({ request, params, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const form = await superValidate(request, zod(deleteTaskSchema));
 
 		if (!form.valid) {
 			return fail(400, { form });
 		}
 
-		const success = await deleteTask(form.data.taskId);
+		const success = await services.tasks.deleteTask(form.data.taskId);
 
 		if (!success) {
 			return fail(404, {

@@ -1,12 +1,20 @@
-import { getTaskById, updateTask } from '$lib/tasks';
 import type { PageServerLoad, Actions } from './$types';
-import { redirect, fail } from '@sveltejs/kit';
+import { redirect, fail, error } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { taskSchema } from '$lib/schemas/task-schema';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
-	const task = await getTaskById(params.id);
+export const load: PageServerLoad = async ({ params, locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
+	const task = await services.tasks.getTaskById(params.id);
 
 	if (!task) {
 		throw redirect(303, '/projects');
@@ -32,7 +40,15 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ params, request }) => {
+	default: async ({ params, request, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const form = await superValidate(request, zod(taskSchema));
 
 		if (!form.valid) {
@@ -41,13 +57,12 @@ export const actions: Actions = {
 		let task;
 
 		try {
-			// Get the task to find the project ID for redirect
-			task = await getTaskById(params.id);
+			task = await services.tasks.getTaskById(params.id);
 			if (!task) {
 				return fail(404, { form });
 			}
 
-			const success = await updateTask(params.id, {
+			const success = await services.tasks.updateTask(params.id, {
 				title: form.data.title,
 				description: form.data.description || undefined,
 				dueDate: form.data.dueDate || undefined,

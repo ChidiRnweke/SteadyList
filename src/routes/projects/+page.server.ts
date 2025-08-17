@@ -1,14 +1,22 @@
-import { getAllProjects, softDeleteProject } from '$lib/projects';
-import { getAllTasks } from '$lib/tasks';
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { superValidate } from 'sveltekit-superforms';
 import { zod } from 'sveltekit-superforms/adapters';
 import { deleteProjectSchema } from '$lib/schemas/delete-schema';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
-export const load: PageServerLoad = async () => {
-	const projects = await getAllProjects();
-	const tasks = await getAllTasks();
+export const load: PageServerLoad = async ({ locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
+
+	const projects = await services.projects.getAllProjects();
+	const tasks = await services.tasks.getAllTasks();
 
 	return {
 		projects,
@@ -19,6 +27,14 @@ export const load: PageServerLoad = async () => {
 
 export const actions: Actions = {
 	deleteProject: async (event) => {
+		const user: AuthenticatedUser | null = event.locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const form = await superValidate(event, zod(deleteProjectSchema));
 
 		if (!form.valid) {
@@ -28,7 +44,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const success = await softDeleteProject(form.data.projectId);
+			const success = await services.projects.softDeleteProject(form.data.projectId);
 
 			if (success) {
 				return {

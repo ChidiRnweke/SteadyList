@@ -1,13 +1,20 @@
-import { restoreProject, getDeletedProjects } from '../../lib/projects';
-import { restoreTask, getDeletedTasks } from '../../lib/tasks';
+import { createServices } from '$lib';
+import type { AuthenticatedUser } from '$lib/server/auth';
 import type { Actions, PageServerLoad } from './$types';
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+	const user: AuthenticatedUser | null = locals.user;
+
+	if (!user) {
+		error(401, 'Not logged in.');
+	}
+
+	const services = createServices(user.uid);
 	try {
 		const [deletedTasks, deletedProjects] = await Promise.all([
-			getDeletedTasks(),
-			getDeletedProjects()
+			services.tasks.getDeletedTasks(),
+			services.projects.getDeletedProjects()
 		]);
 
 		return {
@@ -24,7 +31,15 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-	restore: async ({ request }) => {
+	restore: async ({ request, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const formData = await request.formData();
 		const type = formData.get('type') as string;
 		const id = formData.get('id') as string;
@@ -38,7 +53,7 @@ export const actions: Actions = {
 
 		try {
 			if (type === 'project') {
-				const success = await restoreProject(id);
+				const success = await services.projects.restoreProject(id);
 				if (success) {
 					return {
 						success: true,
@@ -46,7 +61,7 @@ export const actions: Actions = {
 					};
 				}
 			} else if (type === 'task') {
-				const success = await restoreTask(id);
+				const success = await services.tasks.restoreTask(id);
 				if (success) {
 					return {
 						success: true,
@@ -68,7 +83,15 @@ export const actions: Actions = {
 		}
 	},
 
-	bulkRestore: async ({ request }) => {
+	bulkRestore: async ({ request, locals }) => {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const formData = await request.formData();
 		const items = formData.get('items') as string;
 
@@ -87,10 +110,10 @@ export const actions: Actions = {
 			for (const item of parsedItems) {
 				try {
 					if (item.type === 'project') {
-						const success = await restoreProject(item.id);
+						const success = await services.projects.restoreProject(item.id);
 						if (success) successCount++;
 					} else if (item.type === 'task') {
-						const success = await restoreTask(item.id);
+						const success = await services.tasks.restoreTask(item.id);
 						if (success) successCount++;
 					}
 				} catch (error) {

@@ -1,81 +1,60 @@
 import prisma from './prisma';
 import type { CreatePromiseMadeInput, UpdatePromiseMadeInput, PromiseMade } from './types';
 
-// Mock user ID for now - replace with actual auth later
-const MOCK_USER_ID = 'user-1';
-
-export async function getAllPromises(): Promise<PromiseMade[]> {
-	const promises = await prisma.promise.findMany({
-		where: {
-			userId: MOCK_USER_ID,
-			deleted: false
-		},
-		orderBy: [
-			{ completed: 'asc' }, // Show incomplete promises first
-			{ dueDate: 'asc' }, // Then sort by due date
-			{ createdAt: 'desc' } // Finally by creation date
-		]
-	});
-
-	return promises.map((promise) => ({
-		...promise,
-		createdAt: promise.createdAt.toISOString(),
-		updatedAt: promise.updatedAt.toISOString(),
-		dueDate: promise.dueDate?.toISOString(),
-		promiseTo: promise.promiseTo || undefined
-	}));
+export interface IPromisesService {
+	getAllPromises(): Promise<PromiseMade[]>;
+	getPromiseById(id: string): Promise<PromiseMade | null>;
+	createPromise(input: CreatePromiseMadeInput): Promise<PromiseMade>;
+	updatePromise(id: string, input: UpdatePromiseMadeInput): Promise<PromiseMade | null>;
+	softDeletePromise(id: string): Promise<boolean>;
+	restorePromise(id: string): Promise<boolean>;
+	getDeletedPromises(): Promise<PromiseMade[]>;
 }
 
-export async function getPromiseById(id: string): Promise<PromiseMade | null> {
-	const promise = await prisma.promise.findUnique({
-		where: { id, deleted: false }
-	});
+export class PromisesService implements IPromisesService {
+	constructor(private userId: string) {}
 
-	if (!promise) return null;
+	async getAllPromises(): Promise<PromiseMade[]> {
+		const promises = await prisma.promise.findMany({
+			where: {
+				userId: this.userId,
+				deleted: false
+			},
+			orderBy: [{ completed: 'asc' }, { dueDate: 'asc' }, { createdAt: 'desc' }]
+		});
 
-	return {
-		...promise,
-		createdAt: promise.createdAt.toISOString(),
-		updatedAt: promise.updatedAt.toISOString(),
-		dueDate: promise.dueDate?.toISOString(),
-		promiseTo: promise.promiseTo || undefined
-	};
-}
+		return promises.map((promise) => ({
+			...promise,
+			createdAt: promise.createdAt.toISOString(),
+			updatedAt: promise.updatedAt.toISOString(),
+			dueDate: promise.dueDate?.toISOString(),
+			promiseTo: promise.promiseTo || undefined
+		}));
+	}
 
-export async function createPromise(input: CreatePromiseMadeInput): Promise<PromiseMade> {
-	const promise = await prisma.promise.create({
-		data: {
-			title: input.title,
-			promiseTo: input.promiseTo,
-			dueDate: input.dueDate ? new Date(input.dueDate) : null,
-			userId: MOCK_USER_ID
-		}
-	});
+	async getPromiseById(id: string): Promise<PromiseMade | null> {
+		const promise = await prisma.promise.findFirst({
+			where: { id, deleted: false, userId: this.userId }
+		});
 
-	return {
-		...promise,
-		createdAt: promise.createdAt.toISOString(),
-		updatedAt: promise.updatedAt.toISOString(),
-		dueDate: promise.dueDate?.toISOString(),
-		promiseTo: promise.promiseTo || undefined
-	};
-}
+		if (!promise) return null;
 
-export async function updatePromise(
-	id: string,
-	input: UpdatePromiseMadeInput
-): Promise<PromiseMade | null> {
-	try {
-		const promise = await prisma.promise.update({
-			where: { id, deleted: false },
+		return {
+			...promise,
+			createdAt: promise.createdAt.toISOString(),
+			updatedAt: promise.updatedAt.toISOString(),
+			dueDate: promise.dueDate?.toISOString(),
+			promiseTo: promise.promiseTo || undefined
+		};
+	}
+
+	async createPromise(input: CreatePromiseMadeInput): Promise<PromiseMade> {
+		const promise = await prisma.promise.create({
 			data: {
-				...(input.title !== undefined && { title: input.title }),
-				...(input.promiseTo !== undefined && { promiseTo: input.promiseTo }),
-				...(input.dueDate !== undefined && {
-					dueDate: input.dueDate ? new Date(input.dueDate) : null
-				}),
-				...(input.completed !== undefined && { completed: input.completed }),
-				updatedAt: new Date()
+				title: input.title,
+				promiseTo: input.promiseTo,
+				dueDate: input.dueDate ? new Date(input.dueDate) : null,
+				userId: this.userId
 			}
 		});
 
@@ -86,52 +65,85 @@ export async function updatePromise(
 			dueDate: promise.dueDate?.toISOString(),
 			promiseTo: promise.promiseTo || undefined
 		};
-	} catch (error) {
-		console.error('Error updating promise:', error);
-		return null;
 	}
-}
 
-export async function softDeletePromise(id: string): Promise<boolean> {
-	try {
-		await prisma.promise.update({
-			where: { id },
-			data: { deleted: true, updatedAt: new Date() }
+	async updatePromise(id: string, input: UpdatePromiseMadeInput): Promise<PromiseMade | null> {
+		const existing = await prisma.promise.findFirst({
+			where: { id, deleted: false, userId: this.userId }
 		});
-		return true;
-	} catch (error) {
-		console.error('Error deleting promise:', error);
-		return false;
-	}
-}
+		if (!existing) return null;
 
-export async function restorePromise(id: string): Promise<boolean> {
-	try {
-		await prisma.promise.update({
-			where: { id },
-			data: { deleted: false, updatedAt: new Date() }
+		try {
+			const promise = await prisma.promise.update({
+				where: { id },
+				data: {
+					...(input.title !== undefined && { title: input.title }),
+					...(input.promiseTo !== undefined && { promiseTo: input.promiseTo }),
+					...(input.dueDate !== undefined && {
+						dueDate: input.dueDate ? new Date(input.dueDate) : null
+					}),
+					...(input.completed !== undefined && { completed: input.completed }),
+					updatedAt: new Date()
+				}
+			});
+
+			return {
+				...promise,
+				createdAt: promise.createdAt.toISOString(),
+				updatedAt: promise.updatedAt.toISOString(),
+				dueDate: promise.dueDate?.toISOString(),
+				promiseTo: promise.promiseTo || undefined
+			};
+		} catch (error) {
+			console.error('Error updating promise:', error);
+			return null;
+		}
+	}
+
+	async softDeletePromise(id: string): Promise<boolean> {
+		const existing = await prisma.promise.findFirst({ where: { id, userId: this.userId } });
+		if (!existing) return false;
+
+		try {
+			await prisma.promise.update({
+				where: { id },
+				data: { deleted: true, updatedAt: new Date() }
+			});
+			return true;
+		} catch (error) {
+			console.error('Error deleting promise:', error);
+			return false;
+		}
+	}
+
+	async restorePromise(id: string): Promise<boolean> {
+		const existing = await prisma.promise.findFirst({ where: { id, userId: this.userId } });
+		if (!existing) return false;
+
+		try {
+			await prisma.promise.update({
+				where: { id },
+				data: { deleted: false, updatedAt: new Date() }
+			});
+			return true;
+		} catch (error) {
+			console.error('Error restoring promise:', error);
+			return false;
+		}
+	}
+
+	async getDeletedPromises(): Promise<PromiseMade[]> {
+		const promises = await prisma.promise.findMany({
+			where: { userId: this.userId, deleted: true },
+			orderBy: { updatedAt: 'desc' }
 		});
-		return true;
-	} catch (error) {
-		console.error('Error restoring promise:', error);
-		return false;
+
+		return promises.map((promise) => ({
+			...promise,
+			createdAt: promise.createdAt.toISOString(),
+			updatedAt: promise.updatedAt.toISOString(),
+			dueDate: promise.dueDate?.toISOString(),
+			promiseTo: promise.promiseTo || undefined
+		}));
 	}
-}
-
-export async function getDeletedPromises(): Promise<PromiseMade[]> {
-	const promises = await prisma.promise.findMany({
-		where: {
-			userId: MOCK_USER_ID,
-			deleted: true
-		},
-		orderBy: { updatedAt: 'desc' }
-	});
-
-	return promises.map((promise) => ({
-		...promise,
-		createdAt: promise.createdAt.toISOString(),
-		updatedAt: promise.updatedAt.toISOString(),
-		dueDate: promise.dueDate?.toISOString(),
-		promiseTo: promise.promiseTo || undefined
-	}));
 }

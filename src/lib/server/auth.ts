@@ -16,9 +16,12 @@ export interface AuthVerifier {
 }
 
 function ensureAdminInitialized() {
+	const projectId = process.env.FIREBASE_PROJECT_ID;
+
 	if (!admin.apps.length) {
 		admin.initializeApp({
-			credential: admin.credential.applicationDefault()
+			credential: admin.credential.applicationDefault(),
+			projectId
 		});
 	}
 }
@@ -28,8 +31,8 @@ async function verifyTokenWithAdmin(idToken: string): Promise<DecodedToken> {
 		ensureAdminInitialized();
 		const decoded = await admin.auth().verifyIdToken(idToken);
 		return decoded as DecodedToken;
-	} catch {
-		console.error('Failed to verify ID token with admin SDK:', idToken);
+	} catch (error) {
+		console.error('Failed to verify ID token with admin SDK:', error);
 		throw new Error('Invalid ID token');
 	}
 }

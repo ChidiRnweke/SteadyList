@@ -1,11 +1,20 @@
-import { json } from '@sveltejs/kit';
-import { updateTask } from '$lib/tasks';
+import { error, json } from '@sveltejs/kit';
+import { createServices } from '$lib';
 import type { RequestHandler } from './$types';
 import type { UpdateTaskInput } from '$lib/types';
 import { updateTaskSchema } from '$lib/schemas/task-schema';
+import type { AuthenticatedUser } from '$lib/server/auth';
 
-export const PUT: RequestHandler = async ({ request, params }) => {
+export const PUT: RequestHandler = async ({ request, params, locals }) => {
 	try {
+		const user: AuthenticatedUser | null = locals.user;
+
+		if (!user) {
+			error(401, 'Not logged in.');
+		}
+
+		const services = createServices(user.uid);
+
 		const body = await request.json();
 
 		// Validate request body using Zod
@@ -48,7 +57,7 @@ export const PUT: RequestHandler = async ({ request, params }) => {
 		if (validatedData.dueDate !== undefined) updateData.dueDate = validatedData.dueDate;
 		if (validatedData.reminder !== undefined) updateData.reminder = validatedData.reminder;
 
-		const result = await updateTask(params.id, updateData);
+		const result = await services.tasks.updateTask(params.id, updateData);
 
 		if (!result) {
 			return json(
