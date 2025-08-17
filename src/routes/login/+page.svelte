@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { user } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	import {
 		Card,
@@ -15,7 +15,7 @@
 
 	$effect(() => {
 		if ($user) {
-			const redirectTo = $page.url.searchParams.get('redirect') || '/';
+			const redirectTo = page.url.searchParams.get('redirect') || '/';
 			goto(redirectTo);
 		}
 	});
