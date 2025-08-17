@@ -32,10 +32,10 @@
 	<!-- Ambient background accents -->
 	<div class="pointer-events-none absolute inset-0 -z-10">
 		<div
-			class="absolute -top-32 -right-24 h-72 w-72 rounded-full bg-gradient-to-tr from-violet-300/40 to-cyan-300/40 blur-3xl dark:from-fuchsia-500/20 dark:to-emerald-500/20"
+			class="absolute -top-16 -right-12 h-48 w-48 rounded-full bg-gradient-to-tr from-violet-300/40 to-cyan-300/40 blur-3xl sm:-top-24 sm:-right-18 sm:h-64 sm:w-64 md:-top-32 md:-right-24 md:h-72 md:w-72 dark:from-fuchsia-500/20 dark:to-emerald-500/20"
 		></div>
 		<div
-			class="absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-gradient-to-tr from-rose-300/40 to-amber-300/40 blur-3xl dark:from-sky-500/15 dark:to-indigo-500/15"
+			class="absolute -bottom-16 -left-12 h-48 w-48 rounded-full bg-gradient-to-tr from-rose-300/40 to-amber-300/40 blur-3xl sm:-bottom-20 sm:-left-18 sm:h-64 sm:w-64 md:-bottom-28 md:-left-24 md:h-72 md:w-72 dark:from-sky-500/15 dark:to-indigo-500/15"
 		></div>
 		<div
 			class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-200/60 to-transparent dark:via-zinc-700/60"
