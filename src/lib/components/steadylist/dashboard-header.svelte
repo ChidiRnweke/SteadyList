@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { LogOut, Menu } from '@lucide/svelte';
+	import { ListChecks, LogOut, Menu } from '@lucide/svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Avatar, AvatarFallback, AvatarImage } from '$lib/components/ui/avatar';
 	import {
@@ -10,12 +10,11 @@
 		DropdownMenuTrigger
 	} from '$lib/components/ui/dropdown-menu';
 	import { Sheet, SheetContent, SheetTrigger } from '$lib/components/ui/sheet';
-	import NotificationIndicator from '$lib/components/steadylist/notification-indicator.svelte';
 	import TrashIndicator from '$lib/components/steadylist/trash-indicator.svelte';
 	import MainNav from '$lib/components/steadylist/main-nav.svelte';
 	import MobileNav from '$lib/components/steadylist/mobile-nav.svelte';
 	import { onMount } from 'svelte';
-	import { signOutUser } from '$lib/firebaseClient';
+	import authClient from '$lib/authClient';
 	import { user } from '$lib/stores/auth';
 	import { toast } from 'svelte-sonner';
 
@@ -44,7 +43,7 @@
 
 		isSigningOut = true;
 		try {
-			await signOutUser();
+			await authClient.signOut();
 			toast.success('Successfully signed out');
 			goto('/login');
 		} catch (error) {
@@ -61,14 +60,20 @@
 	const photoURL = $derived($user?.photoURL || '');
 </script>
 
-<header class="flex items-center justify-between py-4">
-	<div class="flex items-center gap-6">
-		<a href="/" class="flex items-center gap-2">
-			<div class="bg-primary relative flex h-8 w-8 items-center justify-center rounded-lg">
-				<span class="text-sm font-bold text-white">T</span>
+<header class="sticky flex items-center justify-between py-4">
+	<div class=" flex h-16 items-center justify-between">
+		<div class="mr-20 flex items-center gap-3">
+			<div
+				class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white shadow"
+			>
+				<ListChecks class="h-4 w-4" />
 			</div>
-			<span class="text-primary hidden text-xl font-bold md:inline-block"> SteadyList </span>
-		</a>
+			<div class="flex items-center gap-2">
+				<a href="/">
+					<span class="text-lg font-bold tracking-tight">SteadyList</span>
+				</a>
+			</div>
+		</div>
 
 		<div class="hidden md:flex">
 			<MainNav />

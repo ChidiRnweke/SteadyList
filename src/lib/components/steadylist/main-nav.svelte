@@ -8,7 +8,7 @@
 	const routes = $derived([
 		{
 			href: '/',
-			label: 'Dashboard',
+			label: 'Home',
 			icon: LayoutDashboard,
 			active: pathname === '/'
 		},

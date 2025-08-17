@@ -5,9 +5,8 @@
 	import { Card, CardContent } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Input } from '$lib/components/ui/input';
-	import { Calendar, User, Edit, Trash2, Check, X } from '@lucide/svelte';
+	import { Calendar, User, Edit, Trash2, Check, X, MoreVertical } from '@lucide/svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import type { PromiseMade } from '$lib/types';
 	import type { SuperValidated, Infer } from 'sveltekit-superforms';
@@ -21,9 +20,10 @@
 	interface Props {
 		promises: PromiseMade[];
 		updateForm: SuperValidated<Infer<UpdatePromiseMadeSchema>>;
+		hideSections?: boolean; // when true, render flat list for tabs
 	}
 
-	let { promises, updateForm }: Props = $props();
+	let { promises, updateForm, hideSections = false }: Props = $props();
 
 	// State for editing
 	let editingId = $state<string | null>(null);
@@ -163,20 +163,26 @@
 {:else}
 	<div class="space-y-8">
 		<!-- Pending Promises -->
-		{#if pendingPromises.length > 0}
+		{#if pendingPromises.length > 0 && !hideSections}
 			<div>
-				<h2 class="mb-4 text-xl font-semibold">Pending Promises ({pendingPromises.length})</h2>
-				<div class="space-y-3">
+				<div class="mb-3 flex items-center justify-between">
+					<h2 class="text-xl font-semibold">Pending</h2>
+					<Badge variant="secondary" class="rounded-full">{pendingPromises.length}</Badge>
+				</div>
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 					{#each pendingPromises as promise (promise.id)}
-						<Card class="transition-all hover:shadow-md">
+						{@const dueInfo = promise.dueDate ? formatDueDate(promise.dueDate) : null}
+						<Card
+							class={`border-l-4 transition-all hover:shadow-md ${
+								dueInfo?.isOverdue
+									? 'border-destructive'
+									: promise.completed
+										? 'border-green-500'
+										: 'border-transparent'
+							}`}
+						>
 							<CardContent class="p-4">
 								<div class="flex items-start gap-3">
-									<Checkbox
-										checked={promise.completed}
-										onCheckedChange={() => toggleCompletion(promise)}
-										class="mt-1"
-									/>
-
 									<div class="min-w-0 flex-1">
 										{#if editingId === promise.id}
 											<!-- Edit Mode -->
@@ -250,9 +256,18 @@
 									{#if editingId !== promise.id}
 										<DropdownMenu.Root>
 											<DropdownMenu.Trigger class="hover:bg-accent rounded p-1">
-												<Edit class="h-4 w-4" />
+												<MoreVertical class="h-4 w-4" />
 											</DropdownMenu.Trigger>
 											<DropdownMenu.Content>
+												<DropdownMenu.Item onclick={() => toggleCompletion(promise)}>
+													{#if !promise.completed}
+														<Check class="mr-2 h-4 w-4" />
+														Mark completed
+													{:else}
+														<X class="mr-2 h-4 w-4" />
+														Reopen
+													{/if}
+												</DropdownMenu.Item>
 												<DropdownMenu.Item onclick={() => startEdit(promise)}>
 													<Edit class="mr-2 h-4 w-4" />
 													Edit
@@ -276,20 +291,26 @@
 		{/if}
 
 		<!-- Completed Promises -->
-		{#if completedPromises.length > 0}
+		{#if completedPromises.length > 0 && !hideSections}
 			<div>
-				<h2 class="mb-4 text-xl font-semibold">Completed Promises ({completedPromises.length})</h2>
-				<div class="space-y-3">
+				<div class="mb-3 flex items-center justify-between">
+					<h2 class="text-xl font-semibold">Completed</h2>
+					<Badge variant="secondary" class="rounded-full">{completedPromises.length}</Badge>
+				</div>
+				<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
 					{#each completedPromises as promise (promise.id)}
-						<Card class="bg-muted/50 transition-all hover:shadow-md">
+						{@const dueInfo = promise.dueDate ? formatDueDate(promise.dueDate) : null}
+						<Card
+							class={`bg-muted/50 border-l-4 transition-all hover:shadow-md ${
+								promise.completed
+									? 'border-green-500'
+									: dueInfo?.isOverdue
+										? 'border-destructive'
+										: 'border-transparent'
+							}`}
+						>
 							<CardContent class="p-4">
 								<div class="flex items-start gap-3">
-									<Checkbox
-										checked={promise.completed}
-										onCheckedChange={() => toggleCompletion(promise)}
-										class="mt-1"
-									/>
-
 									<div class="min-w-0 flex-1">
 										<h3 class="text-muted-foreground font-medium line-through">{promise.title}</h3>
 
@@ -318,9 +339,13 @@
 
 									<DropdownMenu.Root>
 										<DropdownMenu.Trigger class="hover:bg-accent rounded p-1">
-											<Edit class="h-4 w-4" />
+											<MoreVertical class="h-4 w-4" />
 										</DropdownMenu.Trigger>
 										<DropdownMenu.Content>
+											<DropdownMenu.Item onclick={() => toggleCompletion(promise)}>
+												<X class="mr-2 h-4 w-4" />
+												Reopen
+											</DropdownMenu.Item>
 											<DropdownMenu.Item
 												onclick={() => deletePromise(promise)}
 												class="text-destructive"
@@ -335,6 +360,95 @@
 						</Card>
 					{/each}
 				</div>
+			</div>
+		{/if}
+
+		{#if hideSections}
+			<!-- Flat list mode (for tabs) -->
+			<div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+				{#each promises as promise (promise.id)}
+					{@const dueInfo = promise.dueDate ? formatDueDate(promise.dueDate) : null}
+					<Card
+						class={`border-l-4 transition-all hover:shadow-md ${
+							dueInfo?.isOverdue
+								? 'border-destructive'
+								: promise.completed
+									? 'border-green-500'
+									: 'border-transparent'
+						}`}
+					>
+						<CardContent class="p-4">
+							<div class="flex items-start gap-3">
+								<div class="min-w-0 flex-1">
+									<h3
+										class="text-foreground font-medium {promise.completed
+											? 'text-muted-foreground line-through'
+											: ''}"
+									>
+										{promise.title}
+									</h3>
+
+									<div class="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
+										{#if promise.promiseTo}
+											<Badge variant="secondary" class="text-[10px]">
+												<User class="mr-1 h-3 w-3" />
+												{promise.promiseTo}
+											</Badge>
+										{/if}
+										{#if promise.dueDate}
+											{@const dueDate = new Date(promise.dueDate)}
+											<Badge
+												variant={isPast(dueDate) && !promise.completed ? 'destructive' : 'outline'}
+												class="text-[10px]"
+											>
+												<Calendar class="mr-1 h-3 w-3" />
+												{format(dueDate, 'MMM d, yyyy')}
+											</Badge>
+										{/if}
+									</div>
+
+									<p class="text-muted-foreground mt-1 text-xs">
+										{promise.completed ? 'Completed' : 'Created'}
+										{formatDistanceToNow(
+											new Date(promise.completed ? promise.updatedAt : promise.createdAt),
+											{ addSuffix: true }
+										)}
+									</p>
+								</div>
+
+								<DropdownMenu.Root>
+									<DropdownMenu.Trigger class="hover:bg-accent rounded p-1">
+										<MoreVertical class="h-4 w-4" />
+									</DropdownMenu.Trigger>
+									<DropdownMenu.Content>
+										<DropdownMenu.Item onclick={() => toggleCompletion(promise)}>
+											{#if !promise.completed}
+												<Check class="mr-2 h-4 w-4" />
+												Mark completed
+											{:else}
+												<X class="mr-2 h-4 w-4" />
+												Reopen
+											{/if}
+										</DropdownMenu.Item>
+										{#if !promise.completed}
+											<DropdownMenu.Item onclick={() => startEdit(promise)}>
+												<Edit class="mr-2 h-4 w-4" />
+												Edit
+											</DropdownMenu.Item>
+										{/if}
+										<DropdownMenu.Item
+											onclick={() => deletePromise(promise)}
+											class="text-destructive"
+										>
+											<Trash2 class="mr-2 h-4 w-4" />
+											Delete
+										</DropdownMenu.Item>
+									</DropdownMenu.Content>
+								</DropdownMenu.Root>
+							</div>
+						</CardContent>
+					</Card>
+				{/each}
 			</div>
 		{/if}
 	</div>

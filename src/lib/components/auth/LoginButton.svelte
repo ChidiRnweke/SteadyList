@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { signInWithGoogle } from '$lib/firebaseClient';
+	import authClient from '$lib/authClient';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
 	import { goto } from '$app/navigation';
@@ -20,7 +20,7 @@
 
 		isLoading = true;
 		try {
-			await signInWithGoogle();
+			await authClient.signIn();
 			toast.success('Successfully signed in!');
 
 			// Redirect to the original page if there's a redirect parameter

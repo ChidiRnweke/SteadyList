@@ -34,7 +34,7 @@
 	const { form: data, enhance: formEnhance, submitting } = form;
 </script>
 
-<form method="POST" {action} use:formEnhance class="space-y-4">
+<form method="POST" {action} use:formEnhance class="space-y-6">
 	<Form.Field {form} name="title">
 		<Form.Control>
 			{#snippet children({ props })}
@@ -51,31 +51,33 @@
 		<Form.FieldErrors />
 	</Form.Field>
 
-	<Form.Field {form} name="promiseTo">
-		<Form.Control>
-			{#snippet children({ props })}
-				<Label for="promiseTo">Promised To (optional)</Label>
-				<Input
-					{...props}
-					id="promiseTo"
-					type="text"
-					placeholder="Who did you promise this to?"
-					bind:value={$data.promiseTo}
-				/>
-			{/snippet}
-		</Form.Control>
-		<Form.FieldErrors />
-	</Form.Field>
+	<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+		<Form.Field {form} name="promiseTo">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Label for="promiseTo">Promised To (optional)</Label>
+					<Input
+						{...props}
+						id="promiseTo"
+						type="text"
+						placeholder="Who did you promise this to?"
+						bind:value={$data.promiseTo}
+					/>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
 
-	<Form.Field {form} name="dueDate">
-		<Form.Control>
-			{#snippet children({ props })}
-				<Label for="dueDate">Due Date (optional)</Label>
-				<Input {...props} id="dueDate" type="datetime-local" bind:value={$data.dueDate} />
-			{/snippet}
-		</Form.Control>
-		<Form.FieldErrors />
-	</Form.Field>
+		<Form.Field {form} name="dueDate">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Label for="dueDate">Due Date (optional)</Label>
+					<Input {...props} id="dueDate" type="datetime-local" bind:value={$data.dueDate} />
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+	</div>
 
 	<div class="flex gap-2">
 		<Button type="submit" disabled={$submitting} class="bg-primary hover:bg-primary/90">

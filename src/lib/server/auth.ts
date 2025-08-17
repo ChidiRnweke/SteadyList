@@ -1,71 +1,63 @@
-import type { RequestEvent } from '@sveltejs/kit';
-import { verifyIdToken } from './firebase-admin';
-import type { DecodedIdToken } from 'firebase-admin/auth';
+import admin from 'firebase-admin';
+
+export type DecodedToken = Record<string, unknown> | null;
 
 export interface AuthenticatedUser {
 	uid: string;
 	email: string | undefined;
 	displayName: string | undefined;
 	emailVerified: boolean;
-	decodedToken: DecodedIdToken;
+	decodedToken: DecodedToken;
 }
 
-// Extract Firebase ID token from request
-export const getIdTokenFromRequest = (event: RequestEvent): string | null => {
-	// Try to get token from Authorization header
-	const authHeader = event.request.headers.get('authorization');
-	if (authHeader && authHeader.startsWith('Bearer ')) {
-		return authHeader.substring(7);
-	}
+export interface AuthVerifier {
+	verifyAuthentication(authHeader: string | null): Promise<DecodedToken>;
+	extractUser(decodedToken: DecodedToken): AuthenticatedUser;
+}
 
-	// Try to get token from cookie
-	const tokenCookie = event.cookies.get('firebase-token');
-	if (tokenCookie) {
-		return tokenCookie;
+function ensureAdminInitialized() {
+	if (!admin.apps.length) {
+		admin.initializeApp({
+			credential: admin.credential.applicationDefault()
+		});
 	}
+}
 
-	return null;
+async function verifyTokenWithAdmin(idToken: string): Promise<DecodedToken> {
+	try {
+		ensureAdminInitialized();
+		const decoded = await admin.auth().verifyIdToken(idToken);
+		return decoded as DecodedToken;
+	} catch {
+		console.error('Failed to verify ID token with admin SDK:', idToken);
+		throw new Error('Invalid ID token');
+	}
+}
+
+export const firebaseAuthVerifier: AuthVerifier = {
+	async verifyAuthentication(authCookie: string | null): Promise<DecodedToken> {
+		if (authCookie) {
+			return await verifyTokenWithAdmin(authCookie);
+		}
+
+		console.warn('No authentication token found in request');
+		throw new Error('No authentication token found');
+	},
+
+	extractUser(decodedToken: DecodedToken) {
+		const t = decodedToken as unknown as Record<string, unknown>;
+		const uid = String(t.uid ?? '');
+		const email = typeof t.email === 'string' ? (t.email as string) : undefined;
+		const name = typeof t.name === 'string' ? (t.name as string) : undefined;
+		const email_verified = Boolean(t.email_verified ?? false);
+		return {
+			uid,
+			email,
+			displayName: name,
+			emailVerified: email_verified,
+			decodedToken
+		};
+	}
 };
 
-// Verify user authentication from request
-export const verifyAuthentication = async (
-	event: RequestEvent
-): Promise<AuthenticatedUser | null> => {
-	const idToken = getIdTokenFromRequest(event);
-
-	if (!idToken) {
-		return null;
-	}
-
-	const decodedToken = await verifyIdToken(idToken);
-
-	if (!decodedToken) {
-		return null;
-	}
-
-	return {
-		uid: decodedToken.uid,
-		email: decodedToken.email,
-		displayName: decodedToken.name,
-		emailVerified: decodedToken.email_verified || false,
-		decodedToken
-	};
-};
-
-// Require authentication (throws error if not authenticated)
-export const requireAuth = async (event: RequestEvent): Promise<AuthenticatedUser> => {
-	const user = await verifyAuthentication(event);
-
-	if (!user) {
-		throw new Error('Authentication required');
-	}
-
-	return user;
-};
-
-// Add to locals for use in load functions and actions
-export const addUserToLocals = async (event: RequestEvent) => {
-	const user = await verifyAuthentication(event);
-	event.locals.user = user;
-	return user;
-};
+export default firebaseAuthVerifier;

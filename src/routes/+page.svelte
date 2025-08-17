@@ -1,237 +1,337 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import Card from '$lib/components/ui/card/card.svelte';
-	import CardContent from '$lib/components/ui/card/card-content.svelte';
-	import CardDescription from '$lib/components/ui/card/card-description.svelte';
-	import CardHeader from '$lib/components/ui/card/card-header.svelte';
-	import CardTitle from '$lib/components/ui/card/card-title.svelte';
+	import { fade, fly } from 'svelte/transition';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import {
-		CheckSquare,
-		BarChart3,
-		Sparkles,
-		ArrowRight,
-		Trash2,
-		Calendar,
-		Target
-	} from '@lucide/svelte';
+	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import Card from '$lib/components/ui/card/card.svelte';
+	import CardHeader from '$lib/components/ui/card/card-header.svelte';
+	import CardContent from '$lib/components/ui/card/card-content.svelte';
+	import CardTitle from '$lib/components/ui/card/card-title.svelte';
+	import Accordion from '$lib/components/ui/accordion/accordion.svelte';
+	import AccordionItem from '$lib/components/ui/accordion/accordion-item.svelte';
+	import AccordionTrigger from '$lib/components/ui/accordion/accordion-trigger.svelte';
+	import AccordionContent from '$lib/components/ui/accordion/accordion-content.svelte';
 
-	function FolderKanban(props: any) {
-		return `<svg
-            ${Object.entries(props || {})
-							.map(([key, value]) => `${key}="${value}"`)
-							.join(' ')}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-        >
-            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-            <path d="M8 10v4" />
-            <path d="M12 10v2" />
-            <path d="M16 10v6" />
-        </svg>`;
-	}
+	// lucide svelte icons
+	import { ListChecks, Gauge, ClipboardList, CheckCircle2 } from '@lucide/svelte';
 
-	const features = $state([
+	const year = new Date().getFullYear();
+
+	const featureRows = [
 		{
-			icon: FolderKanban,
-			title: 'Project Management',
-			description:
-				'Organize your work into projects with intuitive Kanban boards and task tracking.',
-			href: '/projects',
-			color: 'bg-blue-500/10 text-blue-600 border-blue-200'
+			title: 'Projects',
+			desc: 'Keep initiatives scoped and focused with a clear overview.',
+			label: 'Projects view screenshot'
 		},
 		{
-			icon: CheckSquare,
-			title: 'Task Management',
-			description:
-				'Create, assign, and track tasks with priorities, due dates, and status updates.',
-			href: '/projects',
-			color: 'bg-green-500/10 text-green-600 border-green-200'
+			title: 'Tasks',
+			desc: 'Create, assign, and prioritize tasks with rich details.',
+			label: 'Task detail screenshot',
+			reverse: true
 		},
 		{
-			icon: Sparkles,
-			title: 'AI Task Generation',
-			description: 'Let AI suggest relevant tasks based on your project description and goals.',
-			href: '/projects',
-			color: 'bg-purple-500/10 text-purple-600 border-purple-200'
+			title: 'Progress',
+			desc: 'Track momentum with lightweight metrics and completion rates.',
+			label: 'Progress dashboard screenshot'
 		},
 		{
-			icon: BarChart3,
-			title: 'Progress Tracking',
-			description: 'Monitor project progress with real-time metrics and completion statistics.',
-			href: '/projects',
-			color: 'bg-orange-500/10 text-orange-600 border-orange-200'
+			title: 'Due dates',
+			desc: 'Stay ahead of deadlines with calendar views and reminders.',
+			label: 'Calendar view screenshot',
+			reverse: true
 		},
 		{
-			icon: Calendar,
-			title: 'Due Date Management',
-			description: 'Stay on top of deadlines with due date tracking and reminder notifications.',
-			href: '/projects',
-			color: 'bg-red-500/10 text-red-600 border-red-200'
-		},
-		{
-			icon: Trash2,
-			title: 'Smart Recovery',
-			description: 'Accidentally deleted something? Restore projects and tasks from the trash.',
-			href: '/trash',
-			color: 'bg-gray-500/10 text-gray-600 border-gray-200'
+			title: 'Recovery',
+			desc: 'Restore deleted items anytime from the safety net.',
+			label: 'Trash / recovery screenshot'
 		}
-	]);
-
-	const quickActions = $state([
-		{
-			title: 'Create New Project',
-			description: 'Start organizing your work',
-			href: '/projects/new',
-			icon: FolderKanban,
-			primary: true
-		},
-		{
-			title: 'View All Projects',
-			description: 'Browse existing projects',
-			href: '/projects',
-			icon: Target,
-			primary: false
-		}
-	]);
-
-	function navigateTo(href: string) {
-		goto(href);
-	}
+	];
 </script>
 
-<div class="space-y-12">
-	<!-- Hero Section -->
-	<div class="space-y-6 py-12 text-center">
-		<div class="space-y-4">
-			<h1 class="text-primary text-4xl font-bold tracking-tight md:text-6xl">SteadyList</h1>
-			<p class="text-muted-foreground mx-auto max-w-3xl text-xl md:text-2xl">
-				A powerful project management and productivity tool designed to keep you organized and
-				focused
-			</p>
-		</div>
+<!-- Page wrapper -->
+<div
+	class="relative min-h-screen bg-gradient-to-b from-white via-white to-zinc-50 dark:from-zinc-950 dark:via-zinc-950 dark:to-black"
+>
+	<!-- gradient background (decorative) -->
+	<div
+		class="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(1000px_500px_at_50%_-20%,rgba(99,102,241,0.25),rgba(255,255,255,0))]"
+	></div>
 
-		<div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
-			{#each quickActions as action}
-				<Button
-					size="lg"
-					class={action.primary ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}
-					variant={action.primary ? 'default' : 'outline'}
-					onclick={() => navigateTo(action.href)}
-				>
-					<action.icon class="mr-2 h-5 w-5" />
-					{action.title}
-				</Button>
-			{/each}
-		</div>
-	</div>
+	<main>
+		<!-- Hero -->
+		<section id="demo" class="relative py-20 pt-24 md:py-28">
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="grid items-center gap-10 md:grid-cols-2">
+					<div>
+						<div
+							class="mb-4 inline-flex items-center gap-2 rounded-full bg-zinc-100 px-2.5 py-1.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+						>
+							<Badge variant="secondary" class="rounded-full">New</Badge>
+							Zero‑friction AI via MCP • Works with Claude & ChatGPT
+						</div>
 
-	<!-- Features Grid -->
-	<div class="space-y-8">
-		<div class="space-y-4 text-center">
-			<h2 class="text-primary text-3xl font-bold">Core Features</h2>
-			<p class="text-muted-foreground mx-auto max-w-2xl text-lg">
-				Everything you need to manage projects, track tasks, and boost productivity
-			</p>
-		</div>
+						<h1
+							in:fly={{ y: 10, duration: 500 }}
+							class="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl"
+						>
+							Organize work. <span
+								class="bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-600 bg-clip-text text-transparent"
+								>Finish what matters.</span
+							>
+						</h1>
 
-		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-			{#each features as feature}
-				<button type="button" onclick={() => navigateTo(feature.href)} class="w-full text-left">
-					<Card
-						class="h-full border-slate-200 transition-shadow duration-200 hover:border-slate-300 hover:shadow-lg"
-					>
-						<CardHeader class="pb-4">
-							<div class="flex items-center space-x-3">
-								<div class="rounded-lg border p-2 {feature.color}">
-									<feature.icon class="h-6 w-6" />
+						<p class="mt-4 max-w-xl text-lg text-zinc-600 dark:text-zinc-300">
+							SteadyList is a slick project manager with Kanban boards, task tracking, and real‑time
+							progress — free forever. Connect your favorite AI tools through MCP and keep your
+							flow.
+						</p>
+
+						<div class="mt-6 flex flex-wrap items-center gap-3">
+							<Button size="lg" class="shadow-lg">
+								<a href="#get-started">Create your first project</a>
+							</Button>
+							<Button size="lg" variant="outline">
+								<a href="#features">Explore features</a>
+							</Button>
+						</div>
+					</div>
+
+					<div in:fade={{ duration: 600 }}>
+						<!-- App mock / screenshot placeholder -->
+						<div class="relative overflow-hidden rounded-3xl">
+							<div
+								class="relative aspect-[16/10] w-full bg-gradient-to-br from-zinc-100 via-zinc-50 to-zinc-200 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-800"
+							>
+								<div class="absolute inset-0 grid place-items-center">
+									<div
+										class="rounded-xl border border-dashed border-zinc-400/70 bg-white/70 px-4 py-2 text-xs text-zinc-700 backdrop-blur dark:bg-zinc-900/50 dark:text-zinc-300"
+									>
+										Drop your UI screenshot here (e.g., 1440×900 PNG)
+									</div>
 								</div>
-								<CardTitle class="text-lg">
-									{feature.title}
-								</CardTitle>
 							</div>
-						</CardHeader>
-						<CardContent>
-							<CardDescription class="text-base leading-relaxed">
-								{feature.description}
-							</CardDescription>
-						</CardContent>
-					</Card>
-				</button>
-			{/each}
-		</div>
-	</div>
-
-	<!-- Workflow Section -->
-	<div class="space-y-8">
-		<div class="space-y-4 text-center">
-			<h2 class="text-primary text-3xl font-bold">How It Works</h2>
-			<p class="text-muted-foreground mx-auto max-w-2xl text-lg">
-				Simple workflow to get you started and keep you productive
-			</p>
-		</div>
-
-		<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
-			<div class="space-y-4 text-center">
-				<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-					<span class="text-xl font-bold text-blue-600">1</span>
+						</div>
+					</div>
 				</div>
-				<h3 class="text-xl font-semibold">Create Projects</h3>
-				<p class="text-muted-foreground">
-					Set up projects to organize your work and define clear objectives for each initiative.
-				</p>
 			</div>
+		</section>
 
-			<div class="space-y-4 text-center">
-				<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-green-500/10">
-					<span class="text-xl font-bold text-green-600">2</span>
+		<!-- Features -->
+		<section id="features" class="relative py-20 md:py-28">
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="mx-auto mb-12 max-w-3xl text-center">
+					<h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Feature highlights</h2>
+					<p class="mt-3 text-zinc-600 dark:text-zinc-300">
+						A simple vertical tour. Replace the placeholders with your own screenshots and copy.
+					</p>
 				</div>
-				<h3 class="text-xl font-semibold">Add Tasks</h3>
-				<p class="text-muted-foreground">
-					Break down projects into manageable tasks with priorities, due dates, and detailed
-					descriptions.
-				</p>
+
+				<div class="space-y-16">
+					{#each featureRows as row, i}
+						<div class="grid items-center gap-8 md:grid-cols-2 md:gap-12">
+							<div class={row.reverse ? 'md:order-2' : ''}>
+								<h3 class="text-xl font-semibold">{row.title}</h3>
+								<p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{row.desc}</p>
+								<ul class="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+									<li class="flex items-center gap-2">
+										<CheckCircle2 class="h-4 w-4 text-indigo-500" /> Placeholder bullet — benefit 1
+									</li>
+									<li class="flex items-center gap-2">
+										<CheckCircle2 class="h-4 w-4 text-indigo-500" /> Placeholder bullet — benefit 2
+									</li>
+									<li class="flex items-center gap-2">
+										<CheckCircle2 class="h-4 w-4 text-indigo-500" /> Placeholder bullet — benefit 3
+									</li>
+								</ul>
+							</div>
+
+							<div class={row.reverse ? 'md:order-1' : ''}>
+								<div
+									class="overflow-hidden rounded-2xl border border-dashed border-zinc-300 bg-white/60 dark:bg-zinc-900/40"
+								>
+									<div
+										class="relative aspect-[16/10] w-full bg-gradient-to-br from-zinc-100 via-white to-zinc-200 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-800"
+									>
+										<div class="absolute inset-0 grid place-items-center">
+											<div
+												class="rounded-md bg-white/70 px-3 py-1 text-[11px] text-zinc-700 shadow-sm backdrop-blur dark:bg-zinc-900/60 dark:text-zinc-300"
+											>
+												{row.label}
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
 			</div>
+		</section>
 
-			<div class="space-y-4 text-center">
-				<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10">
-					<span class="text-xl font-bold text-purple-600">3</span>
+		<!-- How it works -->
+		<section
+			id="how"
+			class="relative bg-gradient-to-b from-transparent via-zinc-50 to-transparent py-20 md:py-28 dark:via-zinc-900/20"
+		>
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="mx-auto mb-12 max-w-2xl text-center">
+					<h2 class="text-3xl font-bold tracking-tight sm:text-4xl">How it works</h2>
+					<p class="mt-3 text-zinc-600 dark:text-zinc-300">
+						Three quick steps to a steady workflow.
+					</p>
 				</div>
-				<h3 class="text-xl font-semibold">Track Progress</h3>
-				<p class="text-muted-foreground">
-					Monitor completion rates, manage deadlines, and stay on top of your productivity goals.
-				</p>
+
+				<div class="grid gap-6 md:grid-cols-3">
+					{#each [{ n: 1, title: 'Create Projects', desc: 'Define goals for each initiative and keep scope crisp.', Icon: ListChecks }, { n: 2, title: 'Add Tasks', desc: 'Break work into manageable pieces with priorities and due dates.', Icon: ClipboardList }, { n: 3, title: 'Track Progress', desc: 'See velocity, spot bottlenecks, and ship on time.', Icon: Gauge }] as item (item.title)}
+						<Card class="border-0 bg-white/60 shadow-sm ring-1 ring-black/5 dark:bg-zinc-900/40">
+							<CardHeader class="flex-row items-center gap-3">
+								<div
+									class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white"
+								>
+									{item.n}
+								</div>
+								<CardTitle class="text-base">{item.title}</CardTitle>
+							</CardHeader>
+
+							<CardContent
+								class="-mt-3 flex items-start gap-3 pb-6 text-sm text-zinc-600 dark:text-zinc-300"
+							>
+								<svelte:component this={item.Icon} class="mt-0.5 h-4 w-4 text-indigo-500" />
+								<span>{item.desc}</span>
+							</CardContent>
+						</Card>
+					{/each}
+				</div>
+			</div>
+		</section>
+
+		<!-- Integrations / Feature tour -->
+		<section id="integrations" class="relative py-20 md:py-28">
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="mx-auto mb-12 max-w-2xl text-center">
+					<h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Feature tour</h2>
+					<p class="mt-3 text-zinc-600 dark:text-zinc-300">
+						A few key screens to give the feel. Swap each placeholder with real screenshots.
+					</p>
+				</div>
+
+				<div class="space-y-8">
+					{#each [{ badge: 'Projects', title: 'Organize initiatives', desc: 'Clean overview of all projects with quick filters.', label: 'Projects screen' }, { badge: 'Tasks', title: 'Focus on the next step', desc: 'Task details with checklists, comments, and due dates.', label: 'Task details' }, { badge: 'Progress', title: 'See momentum', desc: 'Lightweight charts to track throughput and completion.', label: 'Progress charts' }] as s, i}
+						<div
+							class="relative overflow-hidden rounded-3xl border-0 bg-white/60 p-6 shadow-sm ring-1 ring-black/5 md:p-8 dark:bg-zinc-900/40"
+						>
+							<div class="mb-4">
+								<Badge variant="secondary" class="rounded-full">{s.badge}</Badge>
+								<h3 class="mt-2 text-xl font-semibold">{s.title}</h3>
+								<p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{s.desc}</p>
+							</div>
+
+							<div
+								class="overflow-hidden rounded-2xl border border-dashed border-zinc-300 bg-white/60 dark:bg-zinc-900/40"
+							>
+								<div
+									class="relative aspect-[16/10] w-full bg-gradient-to-br from-zinc-100 via-white to-zinc-200 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-800"
+								>
+									<div class="absolute inset-0 grid place-items-center">
+										<div
+											class="rounded-md bg-white/70 px-3 py-1 text-[11px] text-zinc-700 shadow-sm backdrop-blur dark:bg-zinc-900/60 dark:text-zinc-300"
+										>
+											{s.label} — drop image
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</section>
+
+		<!-- FAQ -->
+		<section
+			id="faq"
+			class="relative bg-gradient-to-b from-transparent via-zinc-50 to-transparent py-20 md:py-28 dark:via-zinc-900/20"
+		>
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="mx-auto mb-10 max-w-2xl text-center">
+					<h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Frequently asked</h2>
+				</div>
+
+				<Accordion type="single" class="mx-auto max-w-3xl">
+					<AccordionItem value="free">
+						<AccordionTrigger>Is SteadyList really free?</AccordionTrigger>
+						<AccordionContent>
+							Yep. The core app is free forever — create projects, add tasks, track progress, and
+							connect via MCP without a credit card.
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="mcp">
+						<AccordionTrigger>What is MCP and how does it help?</AccordionTrigger>
+						<AccordionContent>
+							MCP (Model Context Protocol) connects SteadyList to AI tools like Claude or ChatGPT in
+							a consistent, secure way so you can move information without glue code.
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="import">
+						<AccordionTrigger>Can I import from other tools?</AccordionTrigger>
+						<AccordionContent>
+							You can paste tasks from spreadsheets or markdown. CSV import is in progress.
+						</AccordionContent>
+					</AccordionItem>
+
+					<AccordionItem value="privacy">
+						<AccordionTrigger>How about privacy?</AccordionTrigger>
+						<AccordionContent>
+							Your projects and tasks stay on SteadyList. When using MCP, only the context you
+							choose is shared with your AI tool.
+						</AccordionContent>
+					</AccordionItem>
+				</Accordion>
+			</div>
+		</section>
+
+		<!-- CTA -->
+		<section id="get-started" class="relative py-20 md:py-28">
+			<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+				<div class="relative overflow-hidden rounded-3xl border-0 p-10 text-center">
+					<div
+						class="absolute inset-0 -z-10 bg-gradient-to-tr from-indigo-500/30 via-fuchsia-500/20 to-cyan-500/30"
+					></div>
+					<div class="mx-auto max-w-2xl">
+						<h3 class="text-2xl font-bold tracking-tight sm:text-3xl">Ready to get started?</h3>
+						<p class="mt-2 text-zinc-700 dark:text-zinc-300">
+							Spin up your first project in seconds. It’s free — and it’s fast.
+						</p>
+
+						<div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+							<Button size="lg" class="shadow-lg">Create your first project</Button>
+							<Button size="lg" variant="outline">Open the demo board</Button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+
+	<footer
+		class="border-t bg-white/70 py-10 text-sm backdrop-blur supports-[backdrop-filter]:bg-white/40 dark:bg-zinc-950/50"
+	>
+		<div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+			<div class="flex flex-col items-center justify-between gap-6 md:flex-row">
+				<div class="flex items-center gap-3">
+					<div
+						class="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white"
+					>
+						<ListChecks class="h-4 w-4" />
+					</div>
+					<span class="font-semibold">SteadyList</span>
+					<Badge variant="secondary" class="rounded-full">Free forever</Badge>
+				</div>
+				<div class="text-zinc-600 dark:text-zinc-400">
+					© {year} SteadyList. All rights reserved.
+				</div>
 			</div>
 		</div>
-	</div>
-
-	<!-- Stats Section -->
-	<div class="rounded-lg bg-slate-50 p-8">
-		<div class="space-y-6 text-center">
-			<h2 class="text-primary text-2xl font-bold">Ready to Get Started?</h2>
-			<p class="text-muted-foreground mx-auto max-w-xl">
-				Join others who have transformed their productivity with SteadyList's intuitive project
-				management tools.
-			</p>
-
-			<div class="flex flex-col justify-center gap-4 sm:flex-row">
-				<Button
-					size="lg"
-					class="bg-primary hover:bg-primary/90"
-					onclick={() => navigateTo('/projects/new')}
-				>
-					{@html FolderKanban({ class: 'mr-2 h-5 w-5' })}
-					Create Your First Project
-					<ArrowRight class="ml-2 h-4 w-4" />
-				</Button>
-			</div>
-		</div>
-	</div>
+	</footer>
 </div>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { user } from '$lib/stores/auth';
-	import { signOutUser } from '$lib/firebaseClient';
+	import authClient from '$lib/authClient';
 	import { Button } from '$lib/components/ui/button';
 	import {
 		DropdownMenu,
@@ -22,7 +22,7 @@
 
 		isSigningOut = true;
 		try {
-			await signOutUser();
+			await authClient.signOut();
 			toast.success('Successfully signed out');
 			goto('/login');
 		} catch (error: any) {
