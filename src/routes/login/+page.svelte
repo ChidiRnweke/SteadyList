@@ -2,6 +2,7 @@
 	import { user } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { cn } from '$lib/utils';
 
 	import {
 		Card,
@@ -90,7 +91,7 @@
 							clip-rule="evenodd"
 						/></svg
 					>
-					Fast SSO sign‑in—no passwords to remember.
+					Fast SSO sign-in—no passwords to remember.
 				</li>
 				<li class="flex items-start gap-3 text-zinc-700 dark:text-zinc-300">
 					<svg
@@ -111,7 +112,7 @@
 
 		<!-- Right: card -->
 		<section class="order-1 md:order-2">
-			<Card class={`relative ${glassCard} transition-all duration-200 hover:shadow-xl`}>
+			<Card class={cn('relative', glassCard, 'transition-all duration-200 hover:shadow-xl')}>
 				<div
 					class="pointer-events-none absolute -inset-px rounded-xl [mask-image:linear-gradient(white,transparent)] opacity-70"
 				></div>
